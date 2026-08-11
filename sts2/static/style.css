@@ -308,6 +308,26 @@ h3 { font-size: 1.05rem; margin: 1rem 0 0.5rem; font-weight: 600; }
 }
 .card h3 { margin: 0 0 0.5rem; font-size: 1rem; }
 .card p { color: var(--text2); font-size: 0.85rem; line-height: 1.5; }
+/* Card art bleeds to the tile edge: negative margins cancel .card's padding,
+   and the top corners follow the border radius. Art is 250x190 (a 25:19 ratio)
+   but tiles are wider than that on a full-width grid, so cover-crop rather
+   than letterbox. height:auto keeps the intrinsic width/height attributes
+   reserving space before the image loads without pinning it to 190px. */
+.card-art {
+  display: block; width: calc(100% + 2.5rem); height: auto; aspect-ratio: 25 / 19;
+  margin: -1.25rem -1.25rem 0.75rem; object-fit: cover;
+  border-radius: calc(var(--radius) - 2px) calc(var(--radius) - 2px) 0 0;
+  border-bottom: 1px solid var(--border);
+  background: var(--bg3);
+}
+/* On the detail page the art stands alone rather than capping a tile, so it
+   keeps its native 250x190 and gets the same gold frame as the surrounding
+   panels instead of bleeding to an edge. */
+.card-art-detail {
+  display: block; width: 250px; height: auto; aspect-ratio: 25 / 19;
+  margin: 0 0 1rem; border: 2px solid var(--gold); border-radius: var(--radius);
+  box-shadow: var(--glow-gold); background: var(--bg3);
+}
 .card-link { text-decoration: none; display: block; }
 .card-link:hover { text-decoration: none; }
 .card-win { border-left: 3px solid var(--green); }

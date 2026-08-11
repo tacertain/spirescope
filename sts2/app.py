@@ -91,6 +91,22 @@ from sts2.i18n import get_language, get_translator  # noqa: E402
 templates.env.globals["t"] = get_translator(get_language())
 templates.env.globals["changed_in"] = _patches.changed_in
 
+# Card art, when the user has run `extract-art` against their own game install.
+# The manifest is the source of truth: templates ask it for a filename and get
+# None for anything this game build had no art for, so no tile ever links an
+# image that is not on disk. Mounted only when the directory exists — pointing
+# StaticFiles at a missing path raises at startup.
+from sts2 import cardart as _cardart  # noqa: E402
+
+_CARD_ART = _cardart.load_manifest()
+if _CARD_ART and _cardart.art_dir().is_dir():
+    app.mount("/cardart",
+              StaticFiles(directory=str(_cardart.art_dir()), html=False),
+              name="cardart")
+    log.info("Card art: %d images from %s", len(_CARD_ART), _cardart.art_dir())
+templates.env.globals["card_art"] = _CARD_ART.get
+templates.env.globals["has_card_art"] = bool(_CARD_ART)
+
 
 def _format_playtime(seconds) -> str:
     """Seconds -> "53h 40m", the way Steam presents playtime.

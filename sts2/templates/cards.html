@@ -38,6 +38,10 @@
 <div class="grid grid-3">
 {% for card in cards %}
 <a href="/cards/{{ card.id }}" class="card card-link">
+  {% set art = card_art(card.id) %}
+  {% if art %}
+  <img src="/cardart/{{ art }}" alt="" width="250" height="190" loading="lazy" class="card-art">
+  {% endif %}
   <h3>
     <span class="char-{{ card.character|lower }}">{{ card.name }}</span>
     <span class="tag tag-cost">{{ card.cost }}</span>

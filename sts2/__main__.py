@@ -35,6 +35,7 @@ Commands:
   export        Export aggregate stats to JSON file
   reset-stats   Delete aggregate stats file
   localize      Build translated card/relic text from your game install
+  extract-art   Build card art from your game install
   sync-up       Upload local aggregate stats to sync service
   sync-down     Download and merge community stats from sync service
 
@@ -185,6 +186,22 @@ def main():
         for path in written:
             print(f"  {path.stem}  ({path.stat().st_size // 1024} KB)")
         print("Pick a language under Settings to use them.")
+        return
+
+    if command == "extract-art":
+        from sts2.cardart import ArtError, extract
+        try:
+            print("Reading card art from your game install...")
+            result = extract(on_progress=lambda msg: print(f"  {msg}"))
+        except ArtError as exc:
+            print(f"Could not extract card art: {exc}")
+            sys.exit(1)
+        print(f"Wrote {result['written']} card images to {result['out_dir']} "
+              f"in {result['seconds']}s (game {result['game_version']}).")
+        if result["missing"]:
+            print(f"{result['missing']} of {result['total']} cards have no art in "
+                  "this build; those tiles stay text-only.")
+        print("Restart Spirescope to pick them up.")
         return
 
     if command == "sync-up":

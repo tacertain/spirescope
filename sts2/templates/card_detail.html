@@ -18,6 +18,11 @@
   <p class="text-muted">{{ card.character }} &bull; {{ card.id }}</p>
 </div>
 
+{% set art = card_art(card.id) %}
+{% if art %}
+<img src="/cardart/{{ art }}" alt="{{ card.name }} card art" width="250" height="190" class="card-art-detail">
+{% endif %}
+
 <div class="detail-desc">{{ card.description }}</div>
 {% if card.description_upgraded %}
 <div class="detail-desc card-win"><strong class="text-green">Upgraded:</strong> {{ card.description_upgraded }}</div>

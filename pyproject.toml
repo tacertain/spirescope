@@ -46,6 +46,13 @@ browser = [
     "pytest-playwright>=0.4.0",
     "playwright>=1.40.0",
 ]
+# Only needed for `spirescope extract-art`, which decodes the BC7 card atlases
+# out of a local game install. The app runs fine without these; tiles simply
+# stay text-only.
+art = [
+    "pillow>=10.0.0",
+    "texture2ddecoder>=1.0.0",
+]
 
 [build-system]
 requires = ["setuptools>=68.0"]
