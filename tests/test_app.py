@@ -433,6 +433,26 @@ async def test_deck_page_has_cost_curve_styles(client):
     assert "bar--attack" in resp.text
 
 
+async def test_container_stretches_to_max_width(client):
+    """.container must set an explicit width, or desktop collapses to mobile.
+
+    body is `display: flex; flex-direction: column`, and a flex item with an
+    `auto` cross-axis margin does not get align-items: stretch. Without
+    `width: 100%` the rule's own `margin: 0 auto` therefore leaves .container
+    at its shrink-to-fit content width — measured at 560px in a 1280px
+    viewport — and every auto-fill grid drops to one or two columns.
+    """
+    import re
+
+    resp = await client.get("/static/style.css")
+    assert resp.status_code == 200
+    rule = re.search(r"^\.container\s*\{([^}]*)\}", resp.text, re.M)
+    assert rule, ".container rule not found"
+    assert re.search(r"\bwidth:\s*100%", rule.group(1)), (
+        f".container must declare width: 100%, got: {rule.group(1).strip()}"
+    )
+
+
 async def test_deck_from_run_with_invalid_id(client):
     """GET /deck?from_run=nonexistent should render empty analyzer."""
     resp = await client.get("/deck?from_run=nonexistent_run_id")

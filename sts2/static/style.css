@@ -159,7 +159,11 @@ nav button:hover { opacity: 0.85; }
 .stop-btn:hover { background: var(--crimson); color: var(--bg); }
 
 /* ── Layout ── */
-.container { max-width: 1200px; margin: 0 auto; padding: 2rem; flex: 1; }
+/* width:100% is load-bearing: body is a flex column, and a flex item with an
+   auto cross-axis margin does not get align-items:stretch. Without it, the
+   `margin: 0 auto` below collapses .container to its shrink-to-fit content
+   width (560px in a 1280px viewport) and max-width is never reached. */
+.container { width: 100%; max-width: 1200px; margin: 0 auto; padding: 2rem; flex: 1; }
 
 /* ── Footer ── */
 footer { background: var(--bg2); border-top: 1px solid var(--border); padding: 1.25rem 2rem; text-align: center; font-size: 0.8rem; color: var(--text2); }
