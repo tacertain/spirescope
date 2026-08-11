@@ -1,5 +1,19 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+
+- **Desktop windows no longer render the mobile layout.** Every page laid
+  itself out in a 560px column regardless of window size, so the auto-fill
+  grids collapsed to one or two tracks and a 1280px window looked like a
+  phone. `body` is a flex column, and a flex item with an `auto` cross-axis
+  margin does not receive `align-items: stretch` — so `.container`'s own
+  `margin: 0 auto` prevented it from filling its parent and left it at its
+  shrink-to-fit content width, never reaching `max-width: 1200px`. The rule
+  now sets `width: 100%`; the stat grid goes from two columns to six at
+  1280px. The 768px and 480px breakpoints are unaffected.
+
 ## v3.0.5
 
 ### Fixed
