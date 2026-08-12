@@ -16,6 +16,27 @@
   unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF;
 }
 
+/* ── Kreon and Spectral (self-hosted, SIL OFL) ── the two faces the game itself
+   uses on a card: Kreon for the name and type plaque, Spectral for the rules
+   text. Only loaded for card tiles; the rest of the interface stays on Cinzel
+   and the system stack. ── */
+@font-face {
+  font-family: 'Kreon';
+  font-style: normal;
+  font-weight: 400 700;
+  font-display: swap;
+  src: url('/static/fonts/kreon-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Spectral';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('/static/fonts/spectral-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 :root {
   /* Dark gothic fantasy palette */
   --bg: #0c0a0e; --bg2: #151015; --bg3: #1e1620; --border: #3a2a1a;
@@ -320,6 +341,93 @@ h3 { font-size: 1.05rem; margin: 1rem 0 0.5rem; font-weight: 600; }
   border-bottom: 1px solid var(--border);
   background: var(--bg3);
 }
+/* ── Game-style card ──────────────────────────────────────────────────────
+   A card rebuilt from the game's own sprites rather than an approximation.
+   Every position below is card.tscn's geometry converted to a percentage of
+   the 300x422 card the game lays out: a node at offset_left -125 sits at
+   (150-125)/300 = 8.333%, and so on. Keeping the game's numbers means the
+   frame, the portrait window and the plaque line up by construction instead
+   of by eye.
+
+   Layer order follows the scene tree: portrait, then frame over it (its
+   portrait window is fully transparent), then the border ring, then the
+   banner and plaque and cost orb, then text.
+
+   Sizes are in cqw so everything scales with the tile: the card is 300 units
+   wide, so 1 unit = 0.3333cqw and a 26px title becomes 8.667cqw. */
+.game-card {
+  container-type: inline-size;
+  position: relative;
+  aspect-ratio: 300 / 422;
+  width: 100%;
+  font-synthesis: none;
+}
+.game-card > * { position: absolute; }
+.gc-portrait {
+  left: 8.333%; top: 10.190%; width: 83.333%; height: 45.024%;
+  object-fit: cover;
+}
+.gc-frame   { left: 0; top: 0; width: 100%; height: 100%; }
+.gc-border  { left: 4.167%; top: 11.137%; width: 91.667%; height: 49.763%; }
+.gc-banner  { left: -4.333%; top: 0.948%; width: 109%; height: 19.668%; }
+
+/* Colour is baked into the sprites at extraction time rather than applied
+   here. CSS hue-rotate looked like the obvious fit for the game's shader, but
+   it uses different luminance weights and the opposite rotation sense, so a
+   Rare banner came out pink instead of gold. cardart.py runs the shader's own
+   YIQ matrix instead and writes one variant per tint. */
+.gc-plaque  { left: 39.833%; top: 50.237%; width: 20.333%; height: 8.768%; }
+.gc-energy  { left: -5.333%; top: -3.791%; width: 21.333%; height: 15.166%; }
+
+/* Text layers. The game outlines rather than shadows, so the title and cost
+   get a four-way text-shadow ring; a real -webkit-text-stroke would thin the
+   glyphs from the inside and Kreon is already fairly light. */
+.gc-title, .gc-type, .gc-cost, .gc-text {
+  display: flex; align-items: center; justify-content: center;
+  text-align: center; line-height: 1.1; margin: 0;
+}
+.gc-title {
+  left: 15%; top: 1.659%; width: 70%; height: 12.796%;
+  font-family: 'Kreon', Georgia, serif; font-weight: 700;
+  font-size: 8.667cqw; color: #f5ecd8;
+  text-shadow: 0 0.35cqw 0 #2b1a12, 0 -0.35cqw 0 #2b1a12,
+               0.35cqw 0 0 #2b1a12, -0.35cqw 0 0 #2b1a12;
+}
+.gc-cost {
+  left: -5.333%; top: -3.791%; width: 21.333%; height: 15.166%;
+  font-family: 'Kreon', Georgia, serif; font-weight: 700;
+  font-size: 10.667cqw; color: #fff;
+  text-shadow: 0 0.35cqw 0 #2b1a12, 0 -0.35cqw 0 #2b1a12,
+               0.35cqw 0 0 #2b1a12, -0.35cqw 0 0 #2b1a12;
+}
+.gc-type {
+  left: 39.833%; top: 50.237%; width: 20.333%; height: 8.768%;
+  font-family: 'Kreon', Georgia, serif; font-weight: 700;
+  font-size: 5.333cqw; color: #f0e3cb; text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.gc-text {
+  left: 9.333%; top: 58.768%; width: 81%; height: 32.227%;
+  font-family: 'Spectral', Georgia, serif; font-weight: 600;
+  font-size: 7cqw; color: #efe4d2; line-height: 1.18;
+  overflow: hidden; hyphens: auto;
+}
+/* Rules text runs long on some cards and the game shrinks it to fit. CSS has
+   no fit-to-box, so step the size down by description length instead — the
+   thresholds are eyeballed against the longest cards in each band. */
+.game-card[data-len="long"]  .gc-text { font-size: 6cqw; }
+.game-card[data-len="xlong"] .gc-text { font-size: 5.1cqw; line-height: 1.12; }
+
+/* The tile wraps the card plus the stats that are SpireScope's own. */
+.card-tile { display: block; text-decoration: none; }
+.card-tile:hover { text-decoration: none; }
+.card-tile .game-card { transition: transform 0.15s; }
+.card-tile:hover .game-card { transform: translateY(-3px) scale(1.02); }
+.card-tile-meta {
+  display: flex; flex-wrap: wrap; gap: 0.3rem; align-items: center;
+  justify-content: center; margin-top: 0.5rem;
+}
+
 /* On the detail page the art stands alone rather than capping a tile, so it
    keeps its native 250x190 and gets the same gold frame as the surrounding
    panels instead of bleeding to an edge. */

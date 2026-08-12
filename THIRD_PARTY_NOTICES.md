@@ -69,9 +69,16 @@ the PyInstaller-produced binary is unmodified.
 | Asset | License | Source |
 |---|---|---|
 | Cinzel (woff2 subsets in `sts2/static/fonts/`) | SIL Open Font License 1.1 | https://fonts.google.com/specimen/Cinzel |
+| Kreon (woff2 subset in `sts2/static/fonts/`) | SIL Open Font License 1.1 | https://fonts.google.com/specimen/Kreon |
+| Spectral (woff2 subset in `sts2/static/fonts/`) | SIL Open Font License 1.1 | https://fonts.google.com/specimen/Spectral |
 
-The Cinzel typeface is © Natanael Gama. The OFL text is bundled at
-`sts2/static/fonts/OFL.txt`.
+The Cinzel typeface is © Natanael Gama. Kreon is © Julia Petretta. Spectral is
+© Production Type. All three are under the SIL Open Font License 1.1, whose
+text is bundled at `sts2/static/fonts/OFL.txt`.
+
+Kreon and Spectral are the two faces Slay the Spire 2 itself sets card text
+in. They are fetched from Google Fonts rather than extracted from the game, so
+what ships here is the upstream open-licensed release, not a game asset.
 
 ## Project artwork
 

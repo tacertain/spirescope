@@ -196,8 +196,9 @@ def main():
         except ArtError as exc:
             print(f"Could not extract card art: {exc}")
             sys.exit(1)
-        print(f"Wrote {result['written']} card images to {result['out_dir']} "
-              f"in {result['seconds']}s (game {result['game_version']}).")
+        print(f"Wrote {result['written']} card images and {result['ui']} frame "
+              f"sprites to {result['out_dir']} in {result['seconds']}s "
+              f"(game {result['game_version']}).")
         if result["missing"]:
             print(f"{result['missing']} of {result['total']} cards have no art in "
                   "this build; those tiles stay text-only.")

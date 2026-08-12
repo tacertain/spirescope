@@ -106,6 +106,8 @@ if _CARD_ART and _cardart.art_dir().is_dir():
     log.info("Card art: %d images from %s", len(_CARD_ART), _cardart.art_dir())
 templates.env.globals["card_art"] = _CARD_ART.get
 templates.env.globals["has_card_art"] = bool(_CARD_ART)
+templates.env.globals["card_sprites"] = _cardart.sprites_for
+templates.env.globals["card_text_len"] = _cardart.text_length_class
 
 
 def _format_playtime(seconds) -> str:
