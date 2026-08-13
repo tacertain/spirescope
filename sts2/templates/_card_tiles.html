@@ -1,0 +1,92 @@
+{# One batch of card tiles. Rendered inside cards.html for the first batch and
+   returned on its own for every batch after — see /cards?fragment=1. Keeping it
+   a partial means Jinja stays the only place a tile is built: the markup needs
+   card_art, card_sprites, card_rules, card_text_len, changed_in and card_runs,
+   and rebuilding that in JavaScript would fork the frame geometry, the keyword
+   highlighting and the rarity tints. #}
+{% for card in cards %}
+{% set art = card_art(card.id) %}
+{% if art %}
+{# Rebuilt from the game's own sprites. Falls through to the plain tile below
+   for any card this game build shipped no art for. #}
+{% set sp = card_sprites(card) %}
+<a href="/cards/{{ card.id }}" class="card-tile">
+  <div class="game-card" data-len="{{ card_text_len(card.description) }}">
+    {% if sp.ancient %}
+    {# Ancient cards are laid out differently: the art bleeds to the card edge,
+       a translucent panel carries the rules text, and a glowing ring stands in
+       for the frame. No type frame and no portrait ring at all. #}
+    <img src="/cardart/{{ art }}" alt="" class="gc-ancient-portrait" loading="lazy">
+    <img src="/cardart/ui/ancient_border.png" alt="" class="gc-ancient-border" loading="lazy">
+    <img src="/cardart/ui/{{ sp.text_bg }}.png" alt="" class="gc-ancient-textbg" loading="lazy">
+    {% else %}
+    <img src="/cardart/{{ art }}" alt="" class="gc-portrait" loading="lazy">
+    <img src="/cardart/ui/{{ sp.frame }}__{{ sp.frame_color }}.png" alt="" class="gc-frame" loading="lazy">
+    <img src="/cardart/ui/{{ sp.border }}__{{ sp.banner_color }}.png" alt="" class="gc-border" loading="lazy">
+    {% endif %}
+    <img src="/cardart/ui/{{ sp.banner }}__{{ sp.banner_color }}.png" alt="" class="gc-banner" loading="lazy">
+    <img src="/cardart/ui/plaque__{{ sp.banner_color }}.png" alt="" class="gc-plaque" loading="lazy">
+    {# Unplayable cards get no cost orb at all rather than the game's red slash;
+       the absence of a cost is the tell. sp.cost is already blank for them. #}
+    {% if not sp.unplayable %}
+    <img src="/cardart/ui/{{ sp.energy }}.png" alt="" class="gc-energy" loading="lazy">
+    {% endif %}
+    <p class="gc-title">{{ card.name }}</p>
+    {% if sp.cost %}<p class="gc-cost">{{ sp.cost }}</p>{% endif %}
+    <p class="gc-type">{{ card.type }}</p>
+    <p class="gc-text">{% for line in card_rules(card) %}<span class="gc-line">{% for run, kw in line %}{% if kw %}<span class="gc-kw">{{ run }}</span>{% else %}{{ run }}{% endif %}{% endfor %}</span>{% endfor %}</p>
+  </div>
+  {# No rarity or character tag here: the card itself already says both — the
+     banner and portrait ring carry the rarity tint, the frame the character's.
+     The plain tile below keeps them, having no artwork to say it with.
+     picked/skipped counts offers; won/lost counts finished runs holding it. #}
+  <div class="card-tile-meta">
+    {% if card.source == 'mod' %}<span class="tag tag-mod">Mod</span>{% elif card.source == 'discovered' %}<span class="tag tag-discovered">Discovered</span>{% endif %}
+    {% if changed_in(card.id) %}<span class="tag tag-keyword">Changed {{ changed_in(card.id) }}</span>{% endif %}
+    {% if card.branch == 'beta' %}<span class="tag tag-keyword">Beta only</span>{% endif %}
+    {% set cr = (card_runs or {}).get(card.id) %}
+    {# No pick line: shops make the rate meaningless and events are absent from
+       it entirely (see DESIGN.md). `kept` is not lost with it — it is exactly
+       the denominator of the Final line below. #}
+    {% if cr %}
+    {# Two win rates, because they answer different questions: every run the
+       card was in the deck at any point, and only runs that ended with it. #}
+    {% set held = cr.held_won + cr.held_lost %}
+    {% set final = cr.final_won + cr.final_lost %}
+    {% if held %}
+    <span class="text-xs text-muted">Held {{ cr.held_won }}/{{ held }} ({{ ((cr.held_won / held) * 100)|round|int }}%)</span>
+    {% endif %}
+    {% if final %}
+    <span class="text-xs text-muted">Final {{ cr.final_won }}/{{ final }} ({{ ((cr.final_won / final) * 100)|round|int }}%)</span>
+    {% endif %}
+    {% endif %}
+  </div>
+</a>
+{% else %}
+<a href="/cards/{{ card.id }}" class="card card-link">
+  <h3>
+    <span class="char-{{ card.character|lower }}">{{ card.name }}</span>
+    <span class="tag tag-cost">{{ card.cost }}</span>
+  </h3>
+  <p>
+    <span class="tag tag-{{ card.type|lower }}">{{ card.type }}</span>
+    <span class="tag tag-{{ card.rarity|lower }}">{{ card.rarity }}</span>
+    {% if card.source == 'mod' %}<span class="tag tag-mod">Mod</span>{% elif card.source == 'discovered' %}<span class="tag tag-discovered">Discovered</span>{% endif %}
+    {% if changed_in(card.id) %}<span class="tag tag-keyword">Changed {{ changed_in(card.id) }}</span>{% endif %}
+    {% if card.branch == 'beta' %}<span class="tag tag-keyword">Beta only</span>{% endif %}
+    <span class="char-{{ card.character|lower }} text-xs">{{ card.character }}</span>
+  </p>
+  <p>{{ card.description }}</p>
+  {% if card.keywords %}
+  <p>{% for kw in card.keywords %}<span class="tag tag-keyword">{{ kw }}</span>{% endfor %}</p>
+  {% endif %}
+  {% set cr = (card_runs or {}).get(card.id) %}
+  {% if cr %}
+  {% set held = cr.held_won + cr.held_lost %}
+  {% set final = cr.final_won + cr.final_lost %}
+  {% if held %}<p class="text-xs text-muted mt-xs">Held {{ cr.held_won }}/{{ held }} ({{ ((cr.held_won / held) * 100)|round|int }}%)</p>{% endif %}
+  {% if final %}<p class="text-xs text-muted mt-xs">Final {{ cr.final_won }}/{{ final }} ({{ ((cr.final_won / final) * 100)|round|int }}%)</p>{% endif %}
+  {% endif %}
+</a>
+{% endif %}
+{% endfor %}

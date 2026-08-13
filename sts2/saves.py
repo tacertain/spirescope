@@ -334,6 +334,9 @@ def get_run_history() -> list[RunHistory]:
             # Parse floor history
             floors = []
             floor_num = 0
+            # Union with the final deck rather than trusting cards_gained alone:
+            # the starting deck is not always recorded as a gain.
+            held = set(deck)
             for act_floors in data.get("map_point_history", []):
                 for floor_data in act_floors:
                     floor_num += 1
@@ -343,6 +346,23 @@ def get_run_history() -> list[RunHistory]:
                     p_stats = _get_player_stats(
                         floor_data.get("player_stats", []), player
                     )
+
+                    # Removals matter as much as gains: a card removed at a shop
+                    # is in neither the final deck nor cards_gained, and without
+                    # this it vanishes from the run entirely.
+                    for field in ("cards_gained", "cards_removed"):
+                        held.update(c.get("id", "") for c in p_stats.get(field, [])
+                                    if c.get("id"))
+                    # Transforms record both sides, and both were in the deck:
+                    # the original until it changed, the result afterwards. A
+                    # transform output is in no other field, so without this a
+                    # card that arrived by transform and left the same way — or
+                    # was transformed again — leaves no trace of the run at all.
+                    for entry in p_stats.get("cards_transformed", []):
+                        for side in ("original_card", "final_card"):
+                            cid = (entry.get(side) or {}).get("id")
+                            if cid:
+                                held.add(cid)
 
                     card_picked = ""
                     cards_offered = []
@@ -390,6 +410,7 @@ def get_run_history() -> list[RunHistory]:
                 killed_by=data.get("killed_by_encounter", ""),
                 run_time=data.get("run_time", 0),
                 deck=deck,
+                held=sorted(held),
                 relics=relics,
                 floors=floors,
                 build_id=data.get("build_id", ""),

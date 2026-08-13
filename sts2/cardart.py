@@ -21,6 +21,7 @@ records it as missing so the tile falls back to text.
 """
 from __future__ import annotations
 
+import io
 import json
 import logging
 import math
@@ -37,12 +38,17 @@ SPRITE_PREFIX = "images/atlases/card_atlas.sprites/"
 ART_DIRNAME = "cardart"
 MANIFEST = "manifest.json"
 
-# Godot Image::Format values we can handle. The card atlases are BC7; the
-# compressed_ atlas holding the ancient card template is BC3. Both are 16-byte
-# blocks over 4x4 pixels, so only the decoder call differs.
+# Godot Image::Format values we can handle. The card and ui atlases are BC7;
+# the compressed_ atlas holding the ancient card template is BC3. Both are
+# 16-byte blocks over 4x4 pixels, so only the decoder call differs.
 _FORMAT_DXT5 = 19
 _FORMAT_BPTC_RGBA = 22
+# How the pixels are stored, as opposed to how they are compressed. Atlases are
+# raw blocks; the small standalone UI textures are lossless PNG or WebP, which
+# Pillow reads on its own.
 _DATA_FORMAT_IMAGE = 0
+_DATA_FORMAT_PNG = 1
+_DATA_FORMAT_WEBP = 2
 
 # The frame furniture, keyed by the filename we write. These are the pieces
 # card.tscn layers around the portrait; everything else on a card is text.
@@ -52,7 +58,6 @@ UI_SPRITES = {
     "frame_skill": "images/atlases/ui_atlas.sprites/card/card_frame_skill_s.tres",
     "frame_power": "images/atlases/ui_atlas.sprites/card/card_frame_power_s.tres",
     "frame_quest": "images/atlases/ui_atlas.sprites/card/card_frame_quest_s.tres",
-    "frame_ancient": "images/atlases/ui_atlas.sprites/card/card_frame_ancient_s.tres",
     # the ring around the portrait, also per type
     "portrait_attack": "images/atlases/ui_atlas.sprites/card/card_portrait_border_attack_s.tres",
     "portrait_skill": "images/atlases/ui_atlas.sprites/card/card_portrait_border_skill_s.tres",
@@ -60,7 +65,18 @@ UI_SPRITES = {
     # name banner and the little type plaque under the portrait
     "banner": "images/atlases/ui_atlas.sprites/card/card_banner.tres",
     "banner_ancient": "images/atlases/ui_atlas.sprites/card/ancient_banner.tres",
-    "plaque": "images/atlases/ui_atlas.sprites/card/card_portrait_border_plaque_s.tres",
+    # Ancient cards are a different layout, not a recoloured one: the art bleeds
+    # to the card edge and there is no frame or portrait ring at all. These are
+    # the AncientBorder and AncientTextBg nodes card.tscn keeps hidden until a
+    # card turns out to be Ancient. They live on the compressed_ atlas.
+    "ancient_border":
+        "images/atlases/compressed.sprites/card_template/ancient_card_border.tres",
+    "ancient_text_bg_attack":
+        "images/atlases/compressed.sprites/card_template/ancient_card_text_bg_attack.tres",
+    "ancient_text_bg_skill":
+        "images/atlases/compressed.sprites/card_template/ancient_card_text_bg_skill.tres",
+    "ancient_text_bg_power":
+        "images/atlases/compressed.sprites/card_template/ancient_card_text_bg_power.tres",
     # cost orb, per character
     "energy_ironclad": "images/atlases/ui_atlas.sprites/card/energy_ironclad.tres",
     "energy_silent": "images/atlases/ui_atlas.sprites/card/energy_silent.tres",
@@ -70,6 +86,15 @@ UI_SPRITES = {
     "energy_colorless": "images/atlases/ui_atlas.sprites/card/energy_colorless.tres",
     "energy_quest": "images/atlases/ui_atlas.sprites/card/energy_quest.tres",
     "unplayable": "images/atlases/ui_atlas.sprites/card/card_unplayable_icon.tres",
+}
+
+# Sprites that are a whole texture rather than a region of an atlas, keyed by
+# basename because that is all Godot's import step keeps (see
+# _imported_textures). The type plaque is one: card.tscn points at
+# card_portrait_border_plaque2.png, *not* the card_portrait_border_plaque_s
+# region in the ui atlas, and the two are not the same artwork.
+UI_TEXTURES = {
+    "plaque": "card_portrait_border_plaque2.png",
 }
 
 UI_DIRNAME = "ui"
@@ -109,6 +134,8 @@ _RGB_TO_YIQ = (
 _RE_ATLAS = re.compile(r'path="res://([^"]+card_atlas_\d+\.png)"')
 _RE_REGION = re.compile(
     r"region\s*=\s*Rect2\(\s*([\d.\-]+),\s*([\d.\-]+),\s*([\d.\-]+),\s*([\d.\-]+)\s*\)")
+_RE_MARGIN = re.compile(
+    r"margin\s*=\s*Rect2\(\s*([\d.\-]+),\s*([\d.\-]+),\s*([\d.\-]+),\s*([\d.\-]+)\s*\)")
 _RE_IMPORTED = re.compile(r"\.godot/imported/(.+?)\.png-[0-9a-f]+(\.\w+)?\.ctex$")
 
 
@@ -176,6 +203,11 @@ def _decode_atlas(blob: bytes):
         raise ArtError(f"not a Godot texture (magic {blob[:4]!r})")
     logical_w, logical_h = struct.unpack("<II", blob[8:16])
     data_format, stored_w, stored_h, mipmaps, fmt = struct.unpack("<IHHII", blob[36:52])
+    if data_format in (_DATA_FORMAT_PNG, _DATA_FORMAT_WEBP):
+        # One length-prefixed payload per mipmap. There are no mipmaps on these
+        # and the first is the full image, so the first is all we read.
+        size, = struct.unpack("<I", blob[52:56])
+        return Image.open(io.BytesIO(blob[56:56 + size])).convert("RGBA")
     if data_format != _DATA_FORMAT_IMAGE:
         raise ArtError(f"atlas is stored as data_format {data_format}, expected raw")
     decoders = {
@@ -194,8 +226,33 @@ def _decode_atlas(blob: bytes):
 
 # ── mapping cards to regions ───────────────────────────────────────────────
 
-def _regions(f, index) -> dict[str, tuple[str, tuple[int, int, int, int]]]:
-    """{sprite path: (atlas res:// path, (x, y, w, h))}."""
+def _margin_of(text: str) -> tuple[int, int, int, int]:
+    """An AtlasTexture's `margin`, or all zeroes when it has none.
+
+    The packer trims transparent edges off a sprite and records what it took in
+    `margin`: the position is where the trimmed region sits inside the original
+    image, the size is how much came off in total. Sprites are laid out by
+    their *original* bounds, so a sprite pasted back without its margin sits in
+    the wrong place — the card banner loses 23px off the top, which is enough
+    to lift the whole ribbon clear of the title it is supposed to sit behind.
+    """
+    m = _RE_MARGIN.search(text)
+    return tuple(int(float(g)) for g in m.groups()) if m else (0, 0, 0, 0)
+
+
+def _restore_margin(piece, margin):
+    """Put a cropped region back on a canvas the size the game expects."""
+    mx, my, mw, mh = margin
+    if not (mx or my or mw or mh):
+        return piece
+    from PIL import Image
+    full = Image.new("RGBA", (piece.width + mw, piece.height + mh), (0, 0, 0, 0))
+    full.paste(piece, (mx, my))
+    return full
+
+
+def _regions(f, index) -> dict[str, tuple[str, tuple[int, int, int, int], tuple]]:
+    """{sprite path: (atlas res:// path, (x, y, w, h), margin)}."""
     out = {}
     for path in index:
         if not (path.startswith(SPRITE_PREFIX) and path.endswith(".tres")):
@@ -204,7 +261,9 @@ def _regions(f, index) -> dict[str, tuple[str, tuple[int, int, int, int]]]:
         atlas, region = _RE_ATLAS.search(text), _RE_REGION.search(text)
         if atlas and region:
             slug = path[len(SPRITE_PREFIX):-len(".tres")]
-            out[slug] = (atlas.group(1), tuple(int(float(g)) for g in region.groups()))
+            out[slug] = (atlas.group(1),
+                         tuple(int(float(g)) for g in region.groups()),
+                         _margin_of(text))
     return out
 
 
@@ -231,6 +290,14 @@ def _card_ids() -> list[dict]:
     return cards
 
 
+# A card whose art depends on a choice made during the run, so the archive has
+# one sprite per face and none under the bare name. The catalogue has no run to
+# read, so it shows the first face in the game's own choose(Attack|Skill|Power)
+# order. Which face an actual copy wore is recoverable per run: the deck entry
+# carries props.ints TinkerTimeType, 1/2/3 = Attack/Skill/Power.
+_ART_VARIANTS = {"mad_science": "mad_science_attack"}
+
+
 def _resolve(cards, leaves) -> tuple[dict[str, str], list[str]]:
     """(card id -> sprite path, ids with no art)."""
     found, missing = {}, []
@@ -242,7 +309,8 @@ def _resolve(cards, leaves) -> tuple[dict[str, str], list[str]]:
         char = str(card.get("character", "")).lower()
         # Basics are id'd per character (STRIKE_IRONCLAD) but filed under the
         # character's folder as a bare name (ironclad/strike).
-        for candidate in (key, key.replace(f"_{char}", "")):
+        for candidate in (key, key.replace(f"_{char}", ""),
+                          _ART_VARIANTS.get(key, "")):
             if candidate in leaves:
                 found[cid] = leaves[candidate]
                 break
@@ -257,18 +325,19 @@ def _filename(card_id: str) -> str:
 
 
 def _imported_textures(index) -> dict[str, str]:
-    """{'images/atlases/foo.png': '.godot/imported/foo.png-<hash>.<variant>.ctex'}
+    """{'foo.png': '.godot/imported/foo.png-<hash>.<variant>.ctex'}
 
-    Godot writes one imported file per compression variant. Only the basename
-    survives the import, so atlases are keyed by that; a BC7 variant wins over
-    an uncompressed one because that is what the game actually ships for these.
+    Godot writes one imported file per compression variant, and only the
+    basename survives the import — the source folder is gone — so that is the
+    only key available. A BC7 or BC3 variant wins over an uncompressed one
+    because that is what the game actually ships for these.
     """
     out: dict[str, str] = {}
     for path in index:
         m = _RE_IMPORTED.match(path)
         if not m:
             continue
-        key = f"images/atlases/{m.group(1)}.png"
+        key = f"{m.group(1)}.png"
         if key not in out or m.group(2) in (".bptc", ".s3tc"):
             out[key] = path
     return out
@@ -325,7 +394,7 @@ def _tint(img, h: float, s: float, v: float):
 
 
 def _region_of(f, index, tres_path: str):
-    """(atlas res path, (x, y, w, h)) for a single AtlasTexture resource."""
+    """(atlas res path, (x, y, w, h), margin) for one AtlasTexture resource."""
     if tres_path not in index:
         return None
     text = _read(f, index, tres_path).decode("utf-8", "replace")
@@ -333,7 +402,9 @@ def _region_of(f, index, tres_path: str):
     region = _RE_REGION.search(text)
     if not (atlas and region):
         return None
-    return atlas.group(1), tuple(int(float(g)) for g in region.groups())
+    return (atlas.group(1),
+            tuple(int(float(g)) for g in region.groups()),
+            _margin_of(text))
 
 
 def _extract_ui(f, index, ctex_for, out: Path, on_progress=None) -> int:
@@ -341,41 +412,58 @@ def _extract_ui(f, index, ctex_for, out: Path, on_progress=None) -> int:
     ui_out = out / UI_DIRNAME
     ui_out.mkdir(parents=True, exist_ok=True)
 
-    wanted: dict[str, list[tuple[str, tuple]]] = {}
+    wanted: dict[str, list[tuple[str, tuple, tuple]]] = {}
     for name, tres in UI_SPRITES.items():
         found = _region_of(f, index, tres)
         if not found:
             log.warning("UI sprite not in archive: %s", tres)
             continue
-        atlas_png, rect = found
-        wanted.setdefault(atlas_png, []).append((name, rect))
+        atlas_png, rect, margin = found
+        wanted.setdefault(atlas_png, []).append((name, rect, margin))
 
     written = 0
     for atlas_png, members in sorted(wanted.items()):
-        if atlas_png not in ctex_for:
+        key = Path(atlas_png).name
+        if key not in ctex_for:
             log.warning("No imported texture for %s; skipping %d UI sprites",
                         atlas_png, len(members))
             continue
         if on_progress:
             on_progress(f"decoding {atlas_png} ({len(members)} UI sprites)")
-        sheet = _decode_atlas(_read(f, index, ctex_for[atlas_png]))
-        for name, (x, y, w, h) in members:
-            piece = sheet.crop((x, y, x + w, y + h))
-            piece.save(ui_out / f"{name}.png")
-            written += 1
-            # Frames take the character colour; borders and banners take the
-            # rarity colour. Everything else (plaque, cost orbs) ships in its
-            # final colour and is left alone.
-            tints = (FRAME_TINTS if name.startswith("frame_")
-                     else BANNER_TINTS if name.startswith(("portrait_", "banner"))
-                     else None)
-            if not tints:
-                continue
-            for tint_name, (th, ts, tv) in tints.items():
-                _tint(piece, th, ts, tv).save(ui_out / f"{name}__{tint_name}.png")
-                written += 1
+        sheet = _decode_atlas(_read(f, index, ctex_for[key]))
+        for name, (x, y, w, h), margin in members:
+            piece = _restore_margin(sheet.crop((x, y, x + w, y + h)), margin)
+            written += _write_sprite(piece, name, ui_out)
         sheet.close()
+
+    for name, basename in sorted(UI_TEXTURES.items()):
+        if basename not in ctex_for:
+            log.warning("UI texture not in archive: %s", basename)
+            continue
+        if on_progress:
+            on_progress(f"decoding {basename}")
+        piece = _decode_atlas(_read(f, index, ctex_for[basename]))
+        written += _write_sprite(piece, name, ui_out)
+        piece.close()
     return written
+
+
+def _write_sprite(piece, name: str, ui_out: Path) -> int:
+    """Write a sprite and, where the game tints it, one file per tint.
+
+    Frames take the character colour. Borders, banners and the type plaque all
+    ship teal and take the rarity colour. The cost orbs ship in their final
+    colour and are left alone.
+    """
+    piece.save(ui_out / f"{name}.png")
+    tints = (FRAME_TINTS if name.startswith("frame_")
+             else BANNER_TINTS if name.startswith(("portrait_", "banner", "plaque"))
+             else None)
+    if not tints:
+        return 1
+    for tint_name, (th, ts, tv) in tints.items():
+        _tint(piece, th, ts, tv).save(ui_out / f"{name}__{tint_name}.png")
+    return 1 + len(tints)
 
 
 def _game_version(game_dir: Path) -> str:
@@ -419,17 +507,19 @@ def extract(game_dir=None, out_dir=None, on_progress=None) -> dict:
 
         written, skipped = 0, 0
         for atlas_png, members in sorted(by_atlas.items()):
-            if atlas_png not in ctex_for:
+            key = Path(atlas_png).name
+            if key not in ctex_for:
                 log.warning("No imported texture for %s; skipping %d cards",
                             atlas_png, len(members))
                 skipped += len(members)
                 continue
             if on_progress:
                 on_progress(f"decoding {atlas_png} ({len(members)} cards)")
-            sheet = _decode_atlas(_read(f, index, ctex_for[atlas_png]))
+            sheet = _decode_atlas(_read(f, index, ctex_for[key]))
             for cid, slug in members:
-                x, y, w, h = regions[slug][1]
-                sheet.crop((x, y, x + w, y + h)).save(out / _filename(cid))
+                _, (x, y, w, h), margin = regions[slug]
+                piece = _restore_margin(sheet.crop((x, y, x + w, y + h)), margin)
+                piece.save(out / _filename(cid))
                 written += 1
             sheet.close()
 
@@ -440,7 +530,7 @@ def extract(game_dir=None, out_dir=None, on_progress=None) -> dict:
         "generated": int(time.time()),
         "cards": {cid: _filename(cid) for cid in sorted(resolved)},
         "missing": sorted(missing),
-        "ui": sorted(UI_SPRITES),
+        "ui": sorted([*UI_SPRITES, *UI_TEXTURES]),
     }
     (out / MANIFEST).write_text(json.dumps(manifest, indent=1), encoding="utf-8")
 
@@ -466,6 +556,11 @@ _FRAME_BY_TYPE = {
 }
 _BORDER_BY_TYPE = {
     "attack": "portrait_attack", "power": "portrait_power",
+}
+# The Ancient text panel ships in three heights, one per card type. Anything
+# without its own (Status, Curse) follows the skill panel, as it does elsewhere.
+_ANCIENT_TEXT_BG = {
+    "attack": "ancient_text_bg_attack", "power": "ancient_text_bg_power",
 }
 _ENERGY_CHARACTERS = {
     "ironclad", "silent", "defect", "necrobinder", "regent", "colorless", "quest",
@@ -506,8 +601,11 @@ def _field(card, name: str) -> str:
 def sprites_for(card) -> dict:
     """Which frame pieces a given card is built from.
 
-    Ancient is a rarity rather than a type, and it overrides the type frame —
-    those cards get their own border and banner in game too.
+    Ancient is a rarity rather than a type, and it does not merely recolour the
+    normal card — it replaces the layout. The art bleeds to the card edge and
+    the frame and portrait ring are gone entirely, so `ancient` is a branch the
+    template takes rather than a different set of frame pieces. `frame` and
+    `border` are still filled in, but nothing draws them for an Ancient card.
     """
     ctype = _field(card, "type").lower()
     rarity = _field(card, "rarity").lower()
@@ -516,9 +614,11 @@ def sprites_for(card) -> dict:
     cost = _field(card, "cost")
 
     return {
-        "frame": "frame_ancient" if ancient else _FRAME_BY_TYPE.get(ctype, "frame_skill"),
+        "ancient": ancient,
+        "frame": _FRAME_BY_TYPE.get(ctype, "frame_skill"),
         "border": _BORDER_BY_TYPE.get(ctype, "portrait_skill"),
         "banner": "banner_ancient" if ancient else "banner",
+        "text_bg": _ANCIENT_TEXT_BG.get(ctype, "ancient_text_bg_skill"),
         "energy": ("energy_" + character) if character in _ENERGY_CHARACTERS
                   else "energy_colorless",
         "frame_color": _FRAME_COLOR_BY_CHARACTER.get(character, "colorless"),
@@ -526,6 +626,57 @@ def sprites_for(card) -> dict:
         "unplayable": cost.lower() == "unplayable",
         "cost": "" if cost.lower() == "unplayable" else cost,
     }
+
+
+# The game breaks a card's rules text at every sentence and picks its game
+# terms out in gold. Its own strings carry both explicitly — MOLTEN_FIST reads
+# "Deal {Damage:diff()} damage.\nDouble the enemy's [gold]Vulnerable[/gold]." —
+# but localize.py strips the markup (TAG_RE) on the way to plain text, so both
+# are reconstructed here: the break from the sentence end, the gold from the
+# card's own `keywords`.
+_RULES_BREAK = re.compile(r"(?<=\.)\s+|\n")
+# Matching is case-sensitive on purpose. Game terms are capitalised in the
+# text and the same word in lowercase is ordinary prose: "Whenever a card is
+# Exhausted" is a keyword, "draw 1 card" is not. The optional tail lets an
+# inflection match the stem it came from — Channeled, Wounds, Slimed, Souls.
+_KEYWORD_TAIL = r"(?:s|es|d|ed|ing)?"
+
+
+def _keywords(card) -> list[str]:
+    getter = getattr(card, "get", None)
+    value = getter("keywords") if callable(getter) else getattr(card, "keywords", None)
+    return [str(k) for k in (value or []) if k]
+
+
+def rules_lines(card) -> list[list[tuple[str, bool]]]:
+    """Rules text as lines, each a list of (text, is_keyword) runs.
+
+    Runs rather than HTML so escaping stays in the template.
+    """
+    text = _field(card, "description")
+    words = sorted(set(_keywords(card)), key=len, reverse=True)
+    pattern = re.compile(
+        r"\b(?:" + "|".join(re.escape(w) for w in words) + r")" + _KEYWORD_TAIL + r"\b"
+    ) if words else None
+
+    lines = []
+    for sentence in _RULES_BREAK.split(text):
+        sentence = sentence.strip()
+        if not sentence:
+            continue
+        if pattern is None:
+            lines.append([(sentence, False)])
+            continue
+        runs, pos = [], 0
+        for m in pattern.finditer(sentence):
+            if m.start() > pos:
+                runs.append((sentence[pos:m.start()], False))
+            runs.append((m.group(0), True))
+            pos = m.end()
+        if pos < len(sentence):
+            runs.append((sentence[pos:], False))
+        lines.append(runs)
+    return lines
 
 
 def text_length_class(description: str) -> str:

@@ -20,7 +20,12 @@
 
 {% set art = card_art(card.id) %}
 {% if art %}
-<img src="/cardart/{{ art }}" alt="{{ card.name }} card art" width="250" height="190" class="card-art-detail">
+{# Ancient art is the whole card rather than a portrait window, so it ships
+   250x351 where every other card is 250x190. #}
+{% set tall = card_sprites(card).ancient %}
+<img src="/cardart/{{ art }}" alt="{{ card.name }} card art" width="250"
+     height="{{ 351 if tall else 190 }}"
+     class="card-art-detail{% if tall %} card-art-detail-tall{% endif %}">
 {% endif %}
 
 <div class="detail-desc">{{ card.description }}</div>

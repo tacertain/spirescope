@@ -55,6 +55,8 @@ _compare_js_path = STATIC_DIR / "compare.js"
 _COMPARE_JS_HASH = hashlib.md5(_compare_js_path.read_bytes()).hexdigest()[:8] if _compare_js_path.exists() else "0"
 _live_js_path = STATIC_DIR / "live.js"
 _LIVE_JS_HASH = hashlib.md5(_live_js_path.read_bytes()).hexdigest()[:8] if _live_js_path.exists() else "0"
+_cards_js_path = STATIC_DIR / "cards.js"
+_CARDS_JS_HASH = hashlib.md5(_cards_js_path.read_bytes()).hexdigest()[:8] if _cards_js_path.exists() else "0"
 
 
 @contextlib.asynccontextmanager
@@ -108,6 +110,7 @@ templates.env.globals["card_art"] = _CARD_ART.get
 templates.env.globals["has_card_art"] = bool(_CARD_ART)
 templates.env.globals["card_sprites"] = _cardart.sprites_for
 templates.env.globals["card_text_len"] = _cardart.text_length_class
+templates.env.globals["card_rules"] = _cardart.rules_lines
 
 
 def _format_playtime(seconds) -> str:
@@ -137,6 +140,7 @@ templates.env.globals["collections_js_hash"] = _COLLECTIONS_JS_HASH
 templates.env.globals["shortcuts_js_hash"] = _SHORTCUTS_JS_HASH
 templates.env.globals["compare_js_hash"] = _COMPARE_JS_HASH
 templates.env.globals["live_js_hash"] = _LIVE_JS_HASH
+templates.env.globals["cards_js_hash"] = _CARDS_JS_HASH
 
 # Frozen builds: seed the writable data dir from bundled data before loading
 ensure_data_dir()

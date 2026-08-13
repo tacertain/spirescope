@@ -45,6 +45,56 @@ def _pearson_r(xs: list[float], ys: list[float]) -> float:
     return round(num / den, 3) if den else 0.0
 
 
+def _build_card_runs(runs: list[RunHistory],
+                     starters_by_char: dict[str, set[str]]) -> dict[str, dict]:
+    """Per-card run record for a set of runs, keyed by card id.
+
+    Called once for every run and again per character, so the cards page can
+    scope win rates to "my Defect runs" without recomputing from the save.
+
+      kept        runs the card was still in the deck at the end of
+      held_*      runs the card was in the deck at any point
+      final_*     runs the card was in the final deck
+      picked      reward offers taken, counted from card_choices
+      offered     reward offers seen
+
+    held and final differ because a card can be gained and later removed or
+    transformed, and `deck` is the final deck only. picked/offered come from the
+    run files rather than progress.save because only the run files can be split
+    by character; they cover combat rewards only, as progress.save does.
+    """
+    out: dict[str, dict] = {}
+
+    def rec(card_id: str) -> dict:
+        return out.setdefault(card_id, {
+            "kept": 0, "held_won": 0, "held_lost": 0,
+            "final_won": 0, "final_lost": 0, "picked": 0, "offered": 0,
+        })
+
+    for run in runs:
+        final = set(run.deck)
+        for card_id in set(run.held) | final | starters_by_char.get(run.character, set()):
+            r = rec(card_id)
+            r["held_won" if run.win else "held_lost"] += 1
+            if card_id in final:
+                r["kept"] += 1
+                r["final_won" if run.win else "final_lost"] += 1
+        for floor in run.floors:
+            # Shops are excluded from both sides. They are 2063 of 8880 offers,
+            # but buying does not set was_picked (8 of 2063 do; 398 shop gains
+            # have no pick flag at all), so counting them gave a ratio of reward
+            # picks over reward-offers-plus-shop-declines — a rate of nothing.
+            # Rolling Boulder is the clearest case: 21 offers, every one a shop,
+            # 2 of them bought, displayed as "Picked 0/19 (0%)".
+            if floor.type == "shop":
+                continue
+            for card_id in floor.cards_offered:
+                rec(card_id)["offered"] += 1
+            if floor.card_picked:
+                rec(floor.card_picked)["picked"] += 1
+    return out
+
+
 def compute_analytics(runs: list[RunHistory], card_stats: dict = None, kb=None) -> dict:
     """Compute aggregate analytics from all completed runs.
 
@@ -91,6 +141,35 @@ def compute_analytics(runs: list[RunHistory], card_stats: dict = None, kb=None) 
             card_total[card_id] += 1
             if run.win:
                 card_wins[card_id] += 1
+
+    # Per-card run record, keyed by id and NOT truncated — card_rankings below
+    # is a top-30 leaderboard and must not be used as a lookup table.
+    #   kept        runs the card was still in the deck at the end of
+    #   held_*      runs the card was in the deck at any point
+    #   final_*     runs the card was in the final deck
+    # held and final differ because a card can be gained and later removed or
+    # transformed; `deck` is the final deck only.
+    # A run's starting deck is never recorded as a gain, so a starter cut before
+    # the end would be invisible. Pandora's Box is the case that forces this:
+    # it transforms every Strike and Defend in place and logs neither a removal
+    # nor a gain, so those runs carry no trace of the starters at all. Read the
+    # decklists off the card data rather than hardcoding them — Starter rarity
+    # is exactly the opening deck, quantities aside, and this only needs the set.
+    starters_by_char: dict[str, set[str]] = {}
+    for card in getattr(kb, "cards", []) or []:
+        if card.rarity == "Starter" and card.character:
+            starters_by_char.setdefault(card.character, set()).add(card.id)
+
+    card_runs = _build_card_runs(runs, starters_by_char)
+    # The same record restricted to one character's runs, so the cards page can
+    # answer "how did this card do in my Defect runs". Picks are recounted from
+    # card_choices here rather than taken from progress.save, which has no
+    # per-character breakdown; the two agree closely (491 of 512 cards exactly).
+    card_runs_by_character = {
+        character: _build_card_runs(
+            [r for r in runs if r.character == character], starters_by_char)
+        for character in {r.character for r in runs if r.character}
+    }
 
     card_rankings = []
     for card_id, appearances in card_total.most_common():
@@ -655,6 +734,8 @@ def compute_analytics(runs: list[RunHistory], card_stats: dict = None, kb=None) 
     result = {
         "overview": overview,
         "card_rankings": card_rankings[:30],
+        "card_runs": card_runs,
+        "card_runs_by_character": card_runs_by_character,
         "relic_rankings": relic_rankings[:20],
         "relic_rankings_by_character": relic_rankings_by_character,
         "character_breakdown": character_breakdown,

@@ -1,6 +1,7 @@
 """Tests for the KnowledgeBase engine."""
 import pytest
 
+from sts2.config import CHARACTERS
 from sts2.knowledge import KnowledgeBase, _levenshtein
 
 
@@ -233,10 +234,16 @@ class TestDeckAnalysis:
         assert result["character"] == "Ironclad"
 
     def test_analyze_mixed_characters(self, kb):
+        # Playable characters only. The pseudo-characters (Colorless, Curse,
+        # Status, Token, Event, Quest) are not characters a deck can belong to,
+        # so analyze_deck ignores them — picking one and one real character
+        # yields that character, not "Mixed". Excluding them by name, as this
+        # used to, silently depended on which pseudo-character happened to come
+        # first in the card list.
         chars = set()
         ids = []
         for c in kb.cards:
-            if c.character not in ("Colorless", "Status") and c.character not in chars:
+            if c.character in CHARACTERS and c.character not in chars:
                 chars.add(c.character)
                 ids.append(c.id)
             if len(chars) >= 2:

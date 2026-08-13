@@ -249,7 +249,35 @@ async def search(request: Request, q: str = Query("", max_length=200)):
     })
 
 
-_CARDS_PER_PAGE = 30
+# The character row on the cards page, which is not the same list as the run
+# scope row: cards can be Colorless, runs cannot. Curse, Status, Event, Token
+# and Quest are reachable from the rarity row instead of doubling up here.
+_CARD_CHARACTERS = [*CHARACTERS, "Colorless"]
+
+
+def _win_rate_key(card_runs: dict):
+    """Sort key for "By Win Rate": (win rate, runs it is drawn from).
+
+    Keyed on "held" — every run the card was in the deck at any point — which is
+    the broader of the two rates the tile prints, and the one that matches
+    "picked at any point". It has to be one the tile actually shows: sorting on
+    a number the user cannot see is what made this control look broken before.
+    Runs breaks the tie rather than damping the rate, so a 2/2 does outrank an
+    8/19; that is deliberate.
+    """
+    def key(card):
+        cr = card_runs.get(card.id, {})
+        won = cr.get("held_won", 0)
+        runs = won + cr.get("held_lost", 0)
+        return (won / runs if runs else 0.0, runs)
+    return key
+
+
+# A multiple of 12 so the grid never ends on a ragged row. .card-grid is
+# auto-fill minmax(250px, 1fr) inside a 1200px container with a 2.5rem gap,
+# which resolves to 4, 3 or 2 columns, and 1 under the mobile breakpoint; 12 is
+# their LCM. 30 left two cards stranded on the last row at desktop width.
+_CARDS_PER_PAGE = 36
 
 
 @router.get("/cards", response_class=HTMLResponse)
@@ -257,36 +285,73 @@ async def cards(request: Request, character: str = Query(None, max_length=50),
                 type: str = Query(None, alias="type", max_length=50),
                 rarity: str = Query(None, max_length=50), cost: str = Query(None, max_length=10),
                 keyword: str = Query(None, max_length=100),
-                sort: str = Query(None, max_length=20), page: int = Query(1, ge=1)):
+                sort: str = Query(None, max_length=20), page: int = Query(1, ge=1),
+                runs: str = Query(None, max_length=50),
+                played: bool = Query(False),
+                fragment: bool = Query(False)):
+    """The card list, and — with fragment=1 — one batch of its tiles.
+
+    Batches are server-rendered HTML rather than JSON so Jinja stays the only
+    thing that knows how to build a tile; see _card_tiles.html. A flag on this
+    route rather than a route of its own because the two need exactly the same
+    seven filter/sort parameters, and /cards/{card_id} would shadow a sibling
+    path anyway.
+    """
     a = _app()
     card_type = type
     card_list = a.kb.get_cards(character=character, card_type=card_type,
                                rarity=rarity, cost=cost, keyword=keyword)
-    progress = await a._get_progress()
-    card_stats = progress.card_stats if progress else {}
+    # Every figure on a tile comes from the run files: progress.save records
+    # neither "ever held" nor "still in the final deck", and its pick counters
+    # are not usable as a rate (see DESIGN.md), so nothing here reads it.
+    analytics = await a._get_analytics()
+    # `runs` scopes the statistics, not the card list: with runs=Defect you see
+    # the same cards, but their win rates count only Defect runs. Distinct from
+    # `character`, which filters which cards are listed at all.
+    # Validated against the character list, not against which characters happen
+    # to have runs: picking one you have never played must stay selected and
+    # show empty stats, not silently revert to All runs.
+    run_scope = next((c for c in CHARACTERS if c.lower() == runs.lower()), None) \
+        if runs else None
+    card_runs = (analytics.get("card_runs_by_character", {}).get(run_scope, {})
+                 if run_scope else analytics.get("card_runs", {}))
+
+    if played:
+        # "In the deck at some point" within the active scope. Not merely having
+        # a card_runs entry: cards that were only ever offered and skipped have
+        # one too, with both held counters at zero.
+        card_list = [c for c in card_list
+                     if (card_runs.get(c.id) or {}).get("held_won", 0)
+                     + (card_runs.get(c.id) or {}).get("held_lost", 0) > 0]
 
     # Sort options
     if sort == "winrate":
-        analytics = await a._get_analytics()
-        wr_lookup = {cr["id"]: cr["win_rate"] for cr in analytics.get("card_rankings", [])}
-        card_list = sorted(card_list, key=lambda c: wr_lookup.get(c.id, -1), reverse=True)
-    elif sort == "pickrate":
-        card_list = sorted(card_list, key=lambda c: (
-            card_stats.get(c.id, {}).get("picked", 0) /
-            max(1, card_stats.get(c.id, {}).get("picked", 0) + card_stats.get(c.id, {}).get("skipped", 0))
-        ), reverse=True)
+        # Straight from card_runs, which is what the tile displays, so the
+        # order always matches the number under the card. It used to key off
+        # analytics' card_rankings, but compute_analytics truncates that to the
+        # top 30 for the leaderboard — every other card fell back to a constant
+        # and kept its original position, so the sort moved almost nothing.
+        # Rate first, then how many runs it is drawn from, so a 0% card you have
+        # actually played outranks one you have never finished a run with.
+        card_list = sorted(card_list, key=_win_rate_key(card_runs), reverse=True)
 
     total_cards = len(card_list)
     total_pages = max(1, math.ceil(total_cards / _CARDS_PER_PAGE))
     page = min(page, total_pages)
     start = (page - 1) * _CARDS_PER_PAGE
     paged_cards = card_list[start:start + _CARDS_PER_PAGE]
+    if fragment:
+        return a.templates.TemplateResponse(request, "_card_tiles.html", {
+            "cards": paged_cards, "card_runs": card_runs,
+        })
     return a.templates.TemplateResponse(request, "cards.html", {
         "cards": paged_cards, "total_cards": total_cards, "characters": CHARACTERS,
+        "card_characters": _CARD_CHARACTERS,
         "selected_character": character, "selected_type": card_type,
         "selected_rarity": rarity, "selected_cost": cost, "selected_keyword": keyword,
-        "selected_sort": sort,
-        "page": page, "total_pages": total_pages, "card_stats": card_stats,
+        "selected_sort": sort, "selected_runs": run_scope, "selected_played": played,
+        "page": page, "total_pages": total_pages,
+        "card_runs": card_runs, "per_page": _CARDS_PER_PAGE,
     })
 
 

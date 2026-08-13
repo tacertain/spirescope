@@ -148,6 +148,12 @@ class RunHistory(BaseModel):
     killed_by: str = ""
     run_time: int = 0
     deck: list[str] = []
+    # Every card the run file gives evidence of holding — the final deck plus
+    # everything gained or removed along the way — not just what survived to the
+    # end. `deck` is the final deck, so without this a card gained and later cut
+    # vanishes from the run entirely. Still evidence-only: the starting deck is
+    # never recorded as a gain, so analytics seeds those separately.
+    held: list[str] = []
     relics: list[str] = []
     floors: list[RunFloor] = []
     build_id: str = ""

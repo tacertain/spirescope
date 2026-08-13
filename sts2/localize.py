@@ -22,7 +22,7 @@ import re
 import struct
 from pathlib import Path
 
-from sts2.config import DATA_DIR, GAME_INSTALL_DIR
+from sts2.config import DATA_DIR, DUAL_SUFFIXES, GAME_INSTALL_DIR
 
 log = logging.getLogger(__name__)
 
@@ -45,8 +45,6 @@ CJK_NOSPACE = {"zhs", "zht", "jpn"}
 TAG_RE = re.compile(r"\[/?[a-zA-Z][a-zA-Z0-9]*(?:=[^\]\[]*)?\]")
 NUMPAT = r"(?:-?\d+(?:[.,]\d+)?|X)"
 RESIDUE = set("{}[]@")
-
-DUAL_SUFFIXES = ("_EVENT", "_QUEST", "_TOKEN")
 
 # Localization tables the builder needs from each language folder
 _WANTED = ("cards", "relics", "potions", "monsters", "encounters", "events",

@@ -1,5 +1,6 @@
 """Tests for the FastAPI routes."""
 
+import re
 import sys
 
 from sts2.app import _ADMIN_TOKEN, _rate_limit_store, generate_csrf_token
@@ -23,7 +24,65 @@ async def test_cards_page(client):
     assert resp.status_code == 200
     assert "Cards (" in resp.text
     # Should render actual card names from the data
-    assert '<div class="grid grid-3">' in resp.text
+    assert '<div class="grid grid-3' in resp.text
+
+
+async def test_cards_winrate_sort_matches_displayed_rate(client):
+    """Order must follow the rate printed on the tile, descending.
+
+    The previous key came from analytics' card_rankings, which is truncated to
+    the top 30 for the leaderboard, so all but a handful of cards tied on a
+    fallback value and kept their original order — a sort that looked wired up
+    and moved almost nothing.
+    """
+    resp = await client.get("/cards?sort=winrate")
+    assert resp.status_code == 200
+    tiles = re.findall(
+        r'class="gc-title">([^<]+)</p>.*?class="card-tile-meta">(.*?)</div>',
+        resp.text, re.S)
+    assert tiles, "no card tiles rendered"
+
+    # "Held" is the rate the sort keys on: every run the card was in the deck at
+    # any point, which is the broader of the two the tile prints.
+    keys = []
+    for _name, meta in tiles:
+        m = re.search(r"Held (\d+)/(\d+) \(", meta)
+        keys.append((int(m.group(1)) / int(m.group(2)), int(m.group(2))) if m
+                    else (0.0, 0))
+    assert keys == sorted(keys, reverse=True)
+    # and the key has to actually discriminate, not tie everything
+    assert len(set(keys)) > 1
+
+
+async def test_cards_fragment_returns_tiles_only(client):
+    """fragment=1 is what cards.js appends, so it must carry no page chrome."""
+    resp = await client.get("/cards?fragment=1&page=2")
+    assert resp.status_code == 200
+    assert "<html" not in resp.text.lower()
+    assert "<nav" not in resp.text.lower()
+    assert 'href="/cards/' in resp.text
+
+
+async def test_cards_fragment_respects_filters_and_paging(client):
+    """A batch must be the same slice the full page would have shown."""
+    page2 = await client.get("/cards?character=Ironclad&page=2")
+    frag = await client.get("/cards?character=Ironclad&page=2&fragment=1")
+    assert frag.status_code == 200
+    ids = re.findall(r'href="(/cards/[^"]+)"', frag.text)
+    assert ids, "fragment rendered no cards"
+    for card_url in ids:
+        assert f'href="{card_url}"' in page2.text
+
+
+async def test_cards_pagination_survives_without_scripts(client):
+    """The no-JS fallback has to be in the markup, not hidden by the server."""
+    resp = await client.get("/cards")
+    assert 'id="card-pagination"' in resp.text
+    assert not re.search(r'id="card-pagination"[^>]*hidden', resp.text)
+    # and the grid must hand cards.js the state it needs
+    assert 'id="card-grid"' in resp.text
+    assert "data-total-pages=" in resp.text
+    assert "fragment=1" in resp.text
 
 
 async def test_cards_filter(client):

@@ -137,6 +137,11 @@ def migrate_state_from_data_dir() -> list[str]:
 TEMPLATES_DIR = PROJECT_ROOT / "templates"
 STATIC_DIR = PROJECT_ROOT / "static"
 
+# The wiki gives a card's event, quest and token appearances their own pages, so
+# the scrape lands them as extra ids the game itself does not have. localize.py
+# resolves them back to the base key; knowledge.py drops them from the card list.
+DUAL_SUFFIXES = ("_EVENT", "_QUEST", "_TOKEN")
+
 
 def _find_save_dirs() -> list[Path]:
     """Auto-detect ALL STS2 save directories for the active profile.
