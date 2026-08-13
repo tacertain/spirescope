@@ -117,10 +117,10 @@
   {
     "id": "CARD.BRIGHTEST_FLAME",
     "name": "Brightest Flame",
-    "character": "Event",
+    "character": "Colorless",
     "cost": "0",
     "type": "Skill",
-    "rarity": "Event",
+    "rarity": "Ancient",
     "description": "Gain 2 Energy. Draw 2 cards. Lose 1 Max HP.",
     "keywords": [
       "Draw"
@@ -818,10 +818,10 @@
   {
     "id": "CARD.RELAX",
     "name": "Relax",
-    "character": "Event",
+    "character": "Colorless",
     "cost": "3",
     "type": "Skill",
-    "rarity": "Event",
+    "rarity": "Ancient",
     "description": "Gain 16 Block. Next turn, draw 2 cards and gain 2 Energy. Exhaust.",
     "description_upgraded": "Gain 18 Block. Next turn, draw 3 cards and gain 3 Energy. Exhaust.",
     "keywords": [
@@ -2669,7 +2669,7 @@
     "keywords": []
   },
   {
-    "id": "CARD.CALTROPS_EVENT",
+    "id": "CARD.CALTROPS",
     "name": "Caltrops",
     "character": "Event",
     "cost": "1",
@@ -2680,7 +2680,7 @@
     "keywords": []
   },
   {
-    "id": "CARD.CLASH_EVENT",
+    "id": "CARD.CLASH",
     "name": "Clash",
     "character": "Event",
     "cost": "0",
@@ -2691,7 +2691,7 @@
     "keywords": []
   },
   {
-    "id": "CARD.DISTRACTION_EVENT",
+    "id": "CARD.DISTRACTION",
     "name": "Distraction",
     "character": "Event",
     "cost": "1",
@@ -2704,7 +2704,7 @@
     ]
   },
   {
-    "id": "CARD.DUAL_WIELD_EVENT",
+    "id": "CARD.DUAL_WIELD",
     "name": "Dual Wield",
     "character": "Event",
     "cost": "1",
@@ -2728,7 +2728,7 @@
     ]
   },
   {
-    "id": "CARD.ENTRENCH_EVENT",
+    "id": "CARD.ENTRENCH",
     "name": "Entrench",
     "character": "Event",
     "cost": "2",
@@ -2767,7 +2767,7 @@
     ]
   },
   {
-    "id": "CARD.HELLO_WORLD_EVENT",
+    "id": "CARD.HELLO_WORLD",
     "name": "Hello World",
     "character": "Event",
     "cost": "1",
@@ -2807,10 +2807,10 @@
   {
     "id": "CARD.NEOWS_FURY",
     "name": "Neow's Fury",
-    "character": "Event",
+    "character": "Colorless",
     "cost": "1",
     "type": "Attack",
-    "rarity": "Event",
+    "rarity": "Ancient",
     "description": "Deal 10 damage. Put up to 2 cards from your Discard Pile into your Hand. Exhaust.",
     "keywords": [
       "Exhaust",
@@ -2832,7 +2832,7 @@
     "keywords": []
   },
   {
-    "id": "CARD.REBOUND_EVENT",
+    "id": "CARD.REBOUND",
     "name": "Rebound",
     "character": "Event",
     "cost": "1",
@@ -2845,7 +2845,7 @@
     ]
   },
   {
-    "id": "CARD.RIP_AND_TEAR_EVENT",
+    "id": "CARD.RIP_AND_TEAR",
     "name": "Rip and Tear",
     "character": "Event",
     "cost": "1",
@@ -2869,7 +2869,7 @@
     ]
   },
   {
-    "id": "CARD.STACK_EVENT",
+    "id": "CARD.STACK",
     "name": "Stack",
     "character": "Event",
     "cost": "1",
@@ -8142,7 +8142,7 @@
     ]
   },
   {
-    "id": "CARD.ABUNDANCE_EVENT",
+    "id": "CARD.ABUNDANCE",
     "name": "Abundance",
     "character": "Event",
     "cost": "1",
@@ -8159,7 +8159,7 @@
     "fetched_at": "2026-08-08"
   },
   {
-    "id": "CARD.MAD_SCIENCE_EVENT",
+    "id": "CARD.MAD_SCIENCE",
     "name": "Mad Science",
     "character": "Event",
     "cost": "1",
@@ -8172,7 +8172,7 @@
     "fetched_at": "2026-08-08"
   },
   {
-    "id": "CARD.OUTMANEUVER_EVENT",
+    "id": "CARD.OUTMANEUVER",
     "name": "Outmaneuver",
     "character": "Event",
     "cost": "1",
@@ -8295,7 +8295,7 @@
     "fetched_at": "2026-08-08"
   },
   {
-    "id": "CARD.DOWSING_QUEST",
+    "id": "CARD.DOWSING",
     "name": "Dowsing",
     "character": "Quest",
     "cost": "Unplayable",
