@@ -56,6 +56,29 @@ which `_CURATED_CHARACTERS` deliberately protects from every source.
 
 ---
 
+## Checking a card against the wiki's own data
+
+When a card's rarity or colour looks wrong, do not read the rendered wiki page —
+read the Lua module the data actually comes from, which is what `sources.py`
+parses. It is authoritative and usually right when our copy is stale:
+
+```python
+import urllib.parse, urllib.request, json
+title = "Module:Cards/StS2 data/Colorless"   # or /Ironclad, /Silent, /Defect, ...
+url = ("https://slaythespire.wiki.gg/api.php?action=query&prop=revisions"
+       "&rvprop=content&rvslots=main&format=json&titles=" + urllib.parse.quote(title))
+req = urllib.request.Request(url, headers={"User-Agent": "spirescope-check/1.0"})
+page = next(iter(json.load(urllib.request.urlopen(req))["query"]["pages"].values()))
+print(page["revisions"][0]["slots"]["main"]["*"])   # grep for the card name
+```
+
+Each entry reads `Cost = 1, Color = "Colorless", Type = "Attack", Rarity = ...`.
+`sources.WikiggSource().fetch_cards()` returns what our parser makes of it, so
+comparing the two separates "the wiki is wrong" from "our parse is wrong" from
+"our copy is stale". All three have happened.
+
+---
+
 ## Routine: when the health check reports a suffixed id with no base
 
 The wiki gives a card's event/quest/token appearance its own page, so the scrape

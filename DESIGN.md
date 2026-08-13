@@ -102,8 +102,14 @@ type, so the archive holds `mad_science_attack`, `_skill` and `_power`.
 The catalogue has no run to read, so it shows the first face in the game's own
 `choose(Attack|Skill|Power)` order. **The per-copy truth is recoverable** — each
 deck entry carries `props.ints.TinkerTimeType`, where **1/2/3 = Attack/Skill/
-Power** (confirmed), plus `TinkerTimeRider` selecting the bonus effect. A run or
-deck view could show the right face; the cards list cannot.
+Power**, confirmed against remembered play. A run or deck view could show the
+right face; the cards list cannot.
+
+`TinkerTimeRider` selects the bonus effect from the eight the template lists
+(Sapping, Choking, Energized, Wisdom, Chaos, Expertise, Curious, Improvement).
+Observed values are 5, 7 and 9 — **the mapping is not confirmed**, and 9 exceeds
+eight riders unless `Violence`, the attack-only modifier, is one of them. Do not
+rely on it without checking.
 
 More generally, `saves.py` reads only `id` from a deck entry and **drops `props`
 entirely**. That field carries per-copy state across 40+ names — `SpoilsActIndex`
@@ -433,6 +439,23 @@ Editing `sts2/data/cards.json` by hand: it is serialised with
 a trailing newline. Re-serialising with anything else rewrites all 8448 lines
 and buries the real change. Assert the round-trip before writing:
 `json.dumps(json.loads(raw), indent=2) + "\n" == raw`.
+
+---
+
+## Known and unfixed
+
+**`/analytics` overflows horizontally on narrow viewports.** At 460px the page
+scrolls 235px wider than the viewport (`scrollWidth` 695); the offenders are a
+479px-wide table and the `.bar-col` chart elements. **Pre-existing** — it
+predates the card work and is slightly worse on `master` — so it is a known
+limitation rather than a regression. Nothing else on the site does this.
+
+**`CARD.FOLLOW_THROUGH`** appears in a run but is absent from `cards.json` under
+any id, so it renders as a discovered placeholder. Unlike the suffix mismatches,
+there is no record to rename.
+
+**The 19 stub records** (see Data quirks) would need reading the game's own
+tables rather than the wiki. `localize.py` already knows how.
 
 ---
 
