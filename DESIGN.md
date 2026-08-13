@@ -466,11 +466,13 @@ composite and `screenshot` times out. DOM reads, JS, network and console all
 work regardless. `loading="lazy"` images never load in a non-compositing pane,
 which looks exactly like broken images but is not.
 
-**Upstream CI rejects AI attribution.** `.github/workflows/no-ai-attribution.yml`
-fails on commit messages matching `co-authored-by:\s*claude` or
-`noreply@anthropic.com`. It does not fire on forks (Actions are disabled there by
-default) but will the moment a PR is opened upstream. Upstream also expects
-`pytest -q` and `ruff check sts2/ tests/` clean.
+**Upstream CI rejects AI attribution, and that is settled.**
+`.github/workflows/no-ai-attribution.yml` fails on commit messages matching
+`co-authored-by:\s*claude` or `noreply@anthropic.com`. It does not fire on forks
+(Actions are disabled there by default). Commits here keep the trailer by
+choice — see `CLAUDE.md` — so this fork does not contribute upstream while that
+workflow stands. **Do not strip the trailers to make a contribution possible.**
+Upstream also expects `pytest -q` and `ruff check sts2/ tests/` clean.
 
 ---
 

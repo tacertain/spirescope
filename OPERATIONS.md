@@ -128,10 +128,11 @@ python scripts/health_check.py
 
 Add a `CHANGELOG.md` entry under `## Unreleased`.
 
-If a change is ever offered upstream: `.github/workflows/no-ai-attribution.yml`
-fails on commit messages matching `co-authored-by:\s*claude` or
-`noreply@anthropic.com`. It does not fire on forks, where Actions are disabled by
-default, but it will the moment a PR is opened against upstream.
+Commits keep their `Co-Authored-By: Claude` trailer. Upstream's
+`.github/workflows/no-ai-attribution.yml` rejects that, so this fork does not
+contribute upstream while the workflow stands — an accepted trade, not a problem
+to route around. **Do not strip the trailers.** See `CLAUDE.md`. The workflow
+does not fire here, as GitHub disables Actions on forks by default.
 
 ---
 
