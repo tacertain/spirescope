@@ -59,6 +59,15 @@
   every tile figure comes from the run files — by asserting the tiles render
   identically with and without a progress.save. The whole suite now passes with
   `STS2_SAVE_DIR` pointed at an empty directory.
+- **The data files are serialised consistently.** `events.json`, `potions.json`,
+  `relics.json` and `patches.json` were in the old `_save_json` form — raw
+  non-ASCII, no trailing newline — while `cards.json`, `enemies.json`,
+  `epochs.json` and `badges.json` were canonical, so half the directory
+  disagreed with the other half. Re-serialised losslessly: the parsed content is
+  identical, only the bytes changed. Doing it now means the next
+  `spirescope update` produces no churn beyond the data it actually changes.
+  `strategy.json` is deliberately excluded — it is hand-authored, nothing writes
+  it, and its layout is intentional.
 - **`spirescope update` no longer leaves the health check failing.**
   `_save_json` wrote `ensure_ascii=False` and no trailing newline, contradicting
   the serialisation `OPERATIONS.md` documents and `health_check.py` asserts, so

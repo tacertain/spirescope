@@ -1913,14 +1913,14 @@
     "name": "Strike Dummy",
     "character": "Shared",
     "rarity": "Common",
-    "description": "Cards containing “Strike” deal 3 additional damage."
+    "description": "Cards containing \u201cStrike\u201d deal 3 additional damage."
   },
   {
     "id": "RELIC.STRIKE_DUMMY_FAKE",
     "name": "Strike Dummy???",
     "character": "Event",
     "rarity": "Event",
-    "description": "Cards containing “Strike” deal 1 additional damage."
+    "description": "Cards containing \u201cStrike\u201d deal 1 additional damage."
   },
   {
     "id": "RELIC.STURDY_CLAMP",
@@ -2185,7 +2185,7 @@
     "name": "Vitruvian Minion",
     "character": "Regent",
     "rarity": "Shop",
-    "description": "Cards containing “Minion” deal double damage and gain double Block."
+    "description": "Cards containing \u201cMinion\u201d deal double damage and gain double Block."
   },
   {
     "id": "RELIC.WAR_HAMMER",

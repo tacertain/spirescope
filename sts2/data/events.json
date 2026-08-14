@@ -15,7 +15,7 @@
       {
         "option": "Immerse",
         "outcome": "Gain 2 Max HP; take 3 damage",
-        "recommendation": "Better long-term — 2 Max HP is permanent, 3 damage is minor"
+        "recommendation": "Better long-term \u2014 2 Max HP is permanent, 3 damage is minor"
       }
     ],
     "notes": "Underdocks event. Immerse is usually better since Max HP is permanent."
@@ -50,12 +50,12 @@
       {
         "option": "Let Go",
         "outcome": "Transform 1 card in your deck",
-        "recommendation": "Good for replacing a weak card — transformation is random but can upgrade"
+        "recommendation": "Good for replacing a weak card \u2014 transformation is random but can upgrade"
       },
       {
         "option": "Maintain Control",
         "outcome": "Upgrade 1 card in your deck",
-        "recommendation": "Safer — guaranteed improvement to a card you choose"
+        "recommendation": "Safer \u2014 guaranteed improvement to a card you choose"
       }
     ],
     "notes": "Overgrowth event. Maintain Control is safer; Let Go is higher variance but can find strong cards."
@@ -91,20 +91,20 @@
       "Act 1",
       "Act 2"
     ],
-    "description": "A sharp pain — a creature has latched on and demands knowledge-sharing.",
+    "description": "A sharp pain \u2014 a creature has latched on and demands knowledge-sharing.",
     "choices": [
       {
         "option": "Rip the Leech Off",
         "outcome": "Lose 5 HP; gain 1 Colorless card",
-        "recommendation": "Take if the HP cost is manageable — Colorless cards can be powerful"
+        "recommendation": "Take if the HP cost is manageable \u2014 Colorless cards can be powerful"
       },
       {
         "option": "Share Knowledge",
         "outcome": "Choose 1 of 5 random cards to add to deck",
-        "recommendation": "Good selection pool — pick the best fit for your archetype"
+        "recommendation": "Good selection pool \u2014 pick the best fit for your archetype"
       }
     ],
-    "notes": "Shared event. Both options give a card — choose based on whether you want Colorless or class cards."
+    "notes": "Shared event. Both options give a card \u2014 choose based on whether you want Colorless or class cards."
   },
   {
     "id": "EVENT.BUGSLAYER",
@@ -120,7 +120,7 @@
         "recommendation": "Take if your deck can handle the fight"
       }
     ],
-    "notes": "Hive event. Details may vary — Early Access content."
+    "notes": "Hive event. Details may vary \u2014 Early Access content."
   },
   {
     "id": "EVENT.BYRDONIS_NEST",
@@ -133,7 +133,7 @@
       {
         "option": "Take the Egg",
         "outcome": "Add Byrdonis Egg quest card to Deck",
-        "recommendation": "RECOMMENDED — the quest card provides strong long-term value"
+        "recommendation": "RECOMMENDED \u2014 the quest card provides strong long-term value"
       },
       {
         "option": "Eat the Egg",
@@ -223,12 +223,12 @@
       {
         "option": "Payment Plan",
         "outcome": "Gain Debt curse; Divine 6 times",
-        "recommendation": "More divinations but adds a curse — only if the extra info is worth it"
+        "recommendation": "More divinations but adds a curse \u2014 only if the extra info is worth it"
       },
       {
         "option": "Uncover Future",
         "outcome": "Pay 50 Gold; Divine 3 times",
-        "recommendation": "Safer option — gold cost only, no curse"
+        "recommendation": "Safer option \u2014 gold cost only, no curse"
       }
     ],
     "notes": "Shared event in Acts 2-3. Divination reveals upcoming map encounters."
@@ -265,17 +265,17 @@
       {
         "option": "Examine Each",
         "outcome": "Lose 15 HP; choose 1 of 3 Doll Relics",
-        "recommendation": "Best selection but highest cost — only if you can afford the HP"
+        "recommendation": "Best selection but highest cost \u2014 only if you can afford the HP"
       },
       {
         "option": "Take Some Time",
         "outcome": "Lose 5 HP; choose 1 of 2 Doll Relics",
-        "recommendation": "Middle ground — decent selection at moderate cost"
+        "recommendation": "Middle ground \u2014 decent selection at moderate cost"
       },
       {
         "option": "Pick at Random",
         "outcome": "Obtain 1 random Doll Relic",
-        "recommendation": "Free relic but no choice — take if HP is low"
+        "recommendation": "Free relic but no choice \u2014 take if HP is low"
       }
     ],
     "notes": "Hive event. More HP spent = more choice over which Doll Relic you get."
@@ -309,11 +309,11 @@
     "choices": [
       {
         "option": "Investigate",
-        "outcome": "Risk/reward — potential relic or card gain",
+        "outcome": "Risk/reward \u2014 potential relic or card gain",
         "recommendation": "Evaluate based on current HP and deck state"
       }
     ],
-    "notes": "Underdocks event. Details may vary — Early Access content."
+    "notes": "Underdocks event. Details may vary \u2014 Early Access content."
   },
   {
     "id": "EVENT.ENDLESS_CONVEYOR",
@@ -321,12 +321,12 @@
     "act": [
       "Act 2"
     ],
-    "description": "A shack with a multi-armed chef: 'ENDLESS FEAST — PAY WHAT YOU HUNGER!' (35 Gold per item).",
+    "description": "A shack with a multi-armed chef: 'ENDLESS FEAST \u2014 PAY WHAT YOU HUNGER!' (35 Gold per item).",
     "choices": [
       {
         "option": "Observe the Chef",
         "outcome": "Upgrade 1 random card in your deck",
-        "recommendation": "Free upgrade — always worth taking"
+        "recommendation": "Free upgrade \u2014 always worth taking"
       }
     ],
     "notes": "Hive event. Free card upgrade with no downside."
@@ -350,12 +350,12 @@
       {
         "option": "Enter Your Hole",
         "outcome": "Enchant a card with Perfect Fit",
-        "recommendation": "Unique enchantment — worth taking if you have a good target card"
+        "recommendation": "Unique enchantment \u2014 worth taking if you have a good target card"
       },
       {
         "option": "Resist",
         "outcome": "Remove 2 cards; add Normality curse",
-        "recommendation": "Deck thinning but the Normality curse limits hand plays — risky"
+        "recommendation": "Deck thinning but the Normality curse limits hand plays \u2014 risky"
       }
     ],
     "notes": "Hive event. Enter Your Hole is generally safer; Resist gives card removal but a harsh curse."
@@ -414,7 +414,7 @@
       {
         "option": "Study",
         "outcome": "Obtain a random Power card",
-        "recommendation": "Good if you need scaling — Power cards provide lasting effects"
+        "recommendation": "Good if you need scaling \u2014 Power cards provide lasting effects"
       },
       {
         "option": "Touch the Core",
@@ -440,10 +440,10 @@
       {
         "option": "Solo Quest",
         "outcome": "Gain 150 Gold; lose 18 HP",
-        "recommendation": "High reward if you can afford the HP — triple the gold"
+        "recommendation": "High reward if you can afford the HP \u2014 triple the gold"
       }
     ],
-    "notes": "Overgrowth event. Classic risk/reward — solo pays 3x but costs significant HP."
+    "notes": "Overgrowth event. Classic risk/reward \u2014 solo pays 3x but costs significant HP."
   },
   {
     "id": "EVENT.LOST_WISP",
@@ -461,10 +461,10 @@
       {
         "option": "Search Nearby Area",
         "outcome": "Gain 60 Gold",
-        "recommendation": "Safe option — solid gold with no downside"
+        "recommendation": "Safe option \u2014 solid gold with no downside"
       }
     ],
-    "notes": "Hive event. Relic + curse vs safe gold — evaluate the relic's value for your build."
+    "notes": "Hive event. Relic + curse vs safe gold \u2014 evaluate the relic's value for your build."
   },
   {
     "id": "EVENT.LUMINOUS_CHOIR",
@@ -496,12 +496,12 @@
       {
         "option": "Group",
         "outcome": "Lose 100 Gold; transform 2 cards",
-        "recommendation": "Expensive but powerful — 2 card transforms can reshape your deck"
+        "recommendation": "Expensive but powerful \u2014 2 card transforms can reshape your deck"
       },
       {
         "option": "Loner",
         "outcome": "Gain 5 Max HP",
-        "recommendation": "Safe choice — free Max HP with no downside"
+        "recommendation": "Safe choice \u2014 free Max HP with no downside"
       }
     ],
     "notes": "Overgrowth event. Group is high cost but high reward; Loner is free value."
@@ -544,7 +544,7 @@
         "recommendation": "Evaluate each blessing based on your current build"
       }
     ],
-    "notes": "Ancient encounter — offers blessings similar to Neow but between acts. Not a standard '?' event."
+    "notes": "Ancient encounter \u2014 offers blessings similar to Neow but between acts. Not a standard '?' event."
   },
   {
     "id": "EVENT.PAEL",
@@ -560,7 +560,7 @@
         "recommendation": "Evaluate each blessing based on your current build"
       }
     ],
-    "notes": "Ancient encounter — offers blessings between acts. Not a standard '?' event."
+    "notes": "Ancient encounter \u2014 offers blessings between acts. Not a standard '?' event."
   },
   {
     "id": "EVENT.POTION_COURIER",
@@ -579,7 +579,7 @@
       {
         "option": "Ransack",
         "outcome": "Obtain 1 random Uncommon Potion",
-        "recommendation": "Better quality — 1 Uncommon potion is often more valuable than 3 Foul"
+        "recommendation": "Better quality \u2014 1 Uncommon potion is often more valuable than 3 Foul"
       }
     ],
     "notes": "Shared event in Acts 2-3. Quantity vs quality potion choice."
@@ -603,7 +603,7 @@
         "recommendation": ""
       }
     ],
-    "notes": "Undocumented event — discovered from save data. Details pending wiki documentation."
+    "notes": "Undocumented event \u2014 discovered from save data. Details pending wiki documentation."
   },
   {
     "id": "EVENT.RANWID_THE_ELDER",
@@ -668,17 +668,17 @@
     "act": [
       "Act 1"
     ],
-    "description": "A chamber entirely constructed of cheese — walls, furniture, candles, and even the door.",
+    "description": "A chamber entirely constructed of cheese \u2014 walls, furniture, candles, and even the door.",
     "choices": [
       {
         "option": "Gorge",
         "outcome": "Select 2 of 8 random Common cards for your Deck",
-        "recommendation": "Good for deck building early — pick cards that fit your archetype"
+        "recommendation": "Good for deck building early \u2014 pick cards that fit your archetype"
       },
       {
         "option": "Search",
         "outcome": "Lose 14 HP; obtain the Chosen Cheese relic",
-        "recommendation": "Take if you can afford the HP — the relic provides lasting value"
+        "recommendation": "Take if you can afford the HP \u2014 the relic provides lasting value"
       }
     ],
     "notes": "Overgrowth event. Gorge is safe card gain; Search costs HP but gives a relic."
@@ -694,12 +694,12 @@
       {
         "option": "Consume",
         "outcome": "Heal 9 HP; upgrade a card in your Deck",
-        "recommendation": "RECOMMENDED — healing plus a free upgrade is excellent value"
+        "recommendation": "RECOMMENDED \u2014 healing plus a free upgrade is excellent value"
       },
       {
         "option": "Plant and Nourish",
         "outcome": "Enchant a card with Sown",
-        "recommendation": "Niche — only if the Sown enchantment fits your strategy"
+        "recommendation": "Niche \u2014 only if the Sown enchantment fits your strategy"
       }
     ],
     "notes": "Overgrowth event. Consume is usually the better choice for the heal + upgrade combo."
@@ -729,7 +729,7 @@
         "recommendation": "Good for offensive builds"
       }
     ],
-    "notes": "Shared event. Free enchantment — choose based on which card type matters most to your deck."
+    "notes": "Shared event. Free enchantment \u2014 choose based on which card type matters most to your deck."
   },
   {
     "id": "EVENT.SLIPPERY_BRIDGE",
@@ -744,12 +744,12 @@
       {
         "option": "Hold On",
         "outcome": "Lose 3 HP; a random card is removed from Deck",
-        "recommendation": "Take if you're okay with random card loss — the HP cost is small"
+        "recommendation": "Take if you're okay with random card loss \u2014 the HP cost is small"
       },
       {
         "option": "Overcome",
         "outcome": "Remove a random card from Deck",
-        "recommendation": "Free card removal — generally the better option"
+        "recommendation": "Free card removal \u2014 generally the better option"
       }
     ],
     "notes": "Shared event across all acts. Forced card removal with no way to skip. Overcome is usually better since it costs no HP."
@@ -778,7 +778,7 @@
         "recommendation": ""
       }
     ],
-    "notes": "Undocumented event — discovered from save data. Likely an Underdocks event. Details pending wiki documentation."
+    "notes": "Undocumented event \u2014 discovered from save data. Likely an Underdocks event. Details pending wiki documentation."
   },
   {
     "id": "EVENT.SPIRIT_GRAFTER",
@@ -792,7 +792,7 @@
       {
         "option": "Let It In",
         "outcome": "Heal 25 HP; add Metamorphosis to Deck",
-        "recommendation": "Great if you need healing — 25 HP is very significant"
+        "recommendation": "Great if you need healing \u2014 25 HP is very significant"
       },
       {
         "option": "Rejection",
@@ -840,7 +840,7 @@
         "recommendation": "Take if the relic fits your build"
       }
     ],
-    "notes": "Overgrowth event. Gold vs relic choice — both options are solid."
+    "notes": "Overgrowth event. Gold vs relic choice \u2014 both options are solid."
   },
   {
     "id": "EVENT.SUNKEN_TREASURY",
@@ -858,10 +858,10 @@
       {
         "option": "Second Chest",
         "outcome": "Gain ~333 Gold; receive Greed curse",
-        "recommendation": "Massive gold but adds a curse — only if you can handle deck pollution"
+        "recommendation": "Massive gold but adds a curse \u2014 only if you can handle deck pollution"
       }
     ],
-    "notes": "Underdocks event. Classic risk/reward — the second chest is 5x the gold but adds a curse."
+    "notes": "Underdocks event. Classic risk/reward \u2014 the second chest is 5x the gold but adds a curse."
   },
   {
     "id": "EVENT.SYMBIOTE",
@@ -883,7 +883,7 @@
         "recommendation": "Good for replacing a weak card"
       }
     ],
-    "notes": "Shared event in Acts 2-3. Both options modify your deck — choose based on what you need."
+    "notes": "Shared event in Acts 2-3. Both options modify your deck \u2014 choose based on what you need."
   },
   {
     "id": "EVENT.TABLET_OF_TRUTH",
@@ -896,7 +896,7 @@
       {
         "option": "Decipher",
         "outcome": "Lose 3 Max HP; upgrade a random card",
-        "recommendation": "Worth it if you can spare the Max HP — free upgrade is strong"
+        "recommendation": "Worth it if you can spare the Max HP \u2014 free upgrade is strong"
       },
       {
         "option": "Smash",
@@ -920,7 +920,7 @@
         "recommendation": "Evaluate based on current run state"
       }
     ],
-    "notes": "Undocumented event — discovered from save data. Details pending wiki documentation."
+    "notes": "Undocumented event \u2014 discovered from save data. Details pending wiki documentation."
   },
   {
     "id": "EVENT.TEA_MASTER",
@@ -933,17 +933,17 @@
       {
         "option": "Bone Tea",
         "outcome": "Pay 50 Gold; upgrade your starting hand next combat",
-        "recommendation": "Cheap option — good if you have key cards to upgrade"
+        "recommendation": "Cheap option \u2014 good if you have key cards to upgrade"
       },
       {
         "option": "Ember Tea",
         "outcome": "Pay 150 Gold; gain 2 Strength at start of next 5 combats",
-        "recommendation": "Expensive but powerful — 2 Strength for 5 fights is excellent scaling"
+        "recommendation": "Expensive but powerful \u2014 2 Strength for 5 fights is excellent scaling"
       },
       {
         "option": "Tea of Discourtesy",
         "outcome": "Shuffle 2 Dazed into Draw Pile next combat",
-        "recommendation": "Negative option — only if you have Dazed synergies or no gold"
+        "recommendation": "Negative option \u2014 only if you have Dazed synergies or no gold"
       }
     ],
     "notes": "Act 2 event. Ember Tea is very strong if you can afford it. Tea of Discourtesy is a trap for most builds."
@@ -954,7 +954,7 @@
     "act": [
       "Act 1"
     ],
-    "description": "Ancient being offering a deal — power at a price.",
+    "description": "Ancient being offering a deal \u2014 power at a price.",
     "choices": [
       {
         "option": "Accept the deal",
@@ -967,7 +967,7 @@
         "recommendation": "Safe if the cost is too steep for your current run"
       }
     ],
-    "notes": "Overgrowth event. The deal varies — weigh the benefit against the cost based on your run state."
+    "notes": "Overgrowth event. The deal varies \u2014 weigh the benefit against the cost based on your run state."
   },
   {
     "id": "EVENT.THE_FUTURE_OF_POTIONS",
@@ -976,7 +976,7 @@
       "Act 2",
       "Act 3"
     ],
-    "description": "A machine that converts liquids into compressed tablets — the future of potions.",
+    "description": "A machine that converts liquids into compressed tablets \u2014 the future of potions.",
     "choices": [
       {
         "option": "Insert a Potion",
@@ -1013,7 +1013,7 @@
       {
         "option": "Nab the Map",
         "outcome": "Receive Spoils Map quest item",
-        "recommendation": "RECOMMENDED — quest items provide rewards later in the run"
+        "recommendation": "RECOMMENDED \u2014 quest items provide rewards later in the run"
       },
       {
         "option": "Slowly Find Exit",
@@ -1098,12 +1098,12 @@
       {
         "option": "This",
         "outcome": "Lose 6 HP; gain 41-68 Gold",
-        "recommendation": "Safe gold gain — good if you need money for shops"
+        "recommendation": "Safe gold gain \u2014 good if you need money for shops"
       },
       {
         "option": "That",
         "outcome": "Add Clumsy curse to Deck; obtain a random Relic",
-        "recommendation": "Higher risk/reward — a relic is powerful but the curse hurts consistency"
+        "recommendation": "Higher risk/reward \u2014 a relic is powerful but the curse hurts consistency"
       }
     ],
     "notes": "Shared event. Gold vs Relic trade-off. The relic option is stronger but adds a curse card to your deck."
@@ -1266,7 +1266,7 @@
       {
         "option": "Bottle",
         "outcome": "Obtain 1 random potion",
-        "recommendation": "Safe option — free potion with no downside"
+        "recommendation": "Safe option \u2014 free potion with no downside"
       }
     ],
     "notes": "Overgrowth event. Bottle is safer; Bathe is only worth it if you desperately need to remove a card."
@@ -1287,7 +1287,7 @@
       {
         "option": "Hug the Tree",
         "outcome": "Lose 9 HP; transform a card",
-        "recommendation": "Good for converting weak cards — transformation can upgrade your deck"
+        "recommendation": "Good for converting weak cards \u2014 transformation can upgrade your deck"
       }
     ],
     "notes": "Overgrowth event. Both options have costs. Card transform can be very valuable for removing starter cards."
@@ -1316,7 +1316,7 @@
         "recommendation": "Good for defensive builds"
       }
     ],
-    "notes": "Overgrowth event. All three options modify your deck — choose based on which transformed card best fits your archetype."
+    "notes": "Overgrowth event. All three options modify your deck \u2014 choose based on which transformed card best fits your archetype."
   },
   {
     "id": "EVENT.ZEN_WEAVER",
