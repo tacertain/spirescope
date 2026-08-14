@@ -406,14 +406,11 @@ def _scrape_cards(html: str) -> list[dict]:
         if not game_id:
             game_id = _wiki_id_to_game_id(wiki_id, "CARD", character)
 
-        # Determine cost string
-        energy = obj.get("energy")
-        if energy is None:
-            cost = "Unplayable"
-        elif isinstance(energy, int):
-            cost = str(energy)
-        else:
-            cost = str(energy)
+        # Determine cost string. -1 is a variable (X) cost, not an unplayable
+        # card — the same distinction _wiki_cost draws for the Lua modules, kept
+        # here so the two sources cannot disagree about the same card.
+        from sts2.sources import _wiki_cost
+        cost = _wiki_cost(obj.get("energy"))
 
         # Extract keywords from description
         desc = _clean_description(obj.get("description", ""))
@@ -534,11 +531,22 @@ def _extract_keywords(description: str) -> list[str]:
 
 
 def _save_json(filename: str, data: list[dict]) -> int:
-    """Write data to a JSON file, return count of items."""
+    """Write data to a JSON file, return count of items.
+
+    `indent=2`, `ensure_ascii` at its default, plus a trailing newline — the
+    serialisation `OPERATIONS.md` documents and `health_check.py` asserts for
+    `cards.json`. This used to pass `ensure_ascii=False` and write no trailing
+    newline, so every `spirescope update` left that check FAILing; a check that
+    fails after the most routine operation in the project is one you learn to
+    ignore.
+
+    Escaping non-ASCII is also defensive here: a file with no byte above 0x7F
+    cannot be mangled by the PowerShell ANSI/BOM round-trip both docs warn about.
+    """
     path = DATA_DIR / filename
     tmp_path = path.with_suffix(".tmp")
     with open(tmp_path, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2, ensure_ascii=False)
+        f.write(json.dumps(data, indent=2) + "\n")
     tmp_path.replace(path)
     return len(data)
 

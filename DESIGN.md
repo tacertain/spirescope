@@ -13,9 +13,28 @@ two different records of what you played.
 ## Running it
 
 `STS2_SAVE_DIR` must point at the **parent of `history`** — `config.py` appends
-`history` itself, so aiming at `history` fails silently. Auto-detection looks in
-`%APPDATA%\SlayTheSpire2\...`, which is not where Steam Cloud keeps saves. The
-game install auto-detects; the attribute is `config.GAME_INSTALL_DIR`.
+`history` itself, so aiming at `history` fails silently. The game install
+auto-detects separately; that attribute is `config.GAME_INSTALL_DIR`.
+
+**Auto-detection is not a fallback that fails — it usually works, and that
+matters.** It looks in `%APPDATA%\SlayTheSpire2\...`, which is a different path
+from the Steam Cloud one `start-spirescope.cmd` sets. An earlier version of this
+document implied the former was the wrong place. On a machine that has played
+the game, both hold the same runs — measured here, the 142 `*.run` files are
+**byte-identical** across the two. The file *counts* differ (193 vs 142) only
+because the `%APPDATA%` copy also keeps 51 `*.run.backup` files, which the
+loader ignores: `saves.py` globs `*.run`.
+
+Two things follow, and both have caused wrong conclusions:
+
+- **`STS2_SAVE_DIR` is not required to see run data.** Code run without it still
+  finds a full save. `start-spirescope.cmd` sets it to pin the Steam Cloud copy,
+  not to make run history work at all.
+- **Testing `os.environ.get("STS2_SAVE_DIR")` is not a test for "runs are
+  available."** A diagnostic script that guarded on the variable silently
+  skipped its run-history section while 142 runs sat there for the taking. Ask
+  `get_run_history()` instead. This is also why the HTTP tests quietly read real
+  runs — see Testing this.
 
 ```bash
 pip install -e ".[art]"     # the art extra is Pillow + texture2ddecoder
@@ -336,10 +355,74 @@ which is what distinguishes them from `character`, `type` and `rarity`:
   every field, the per-character records sum exactly to the overall.**
 - **`played=1`** — hides cards with no presence in the active scope.
 
+- **`asc_min` / `asc_max`** — narrows the same figures to runs in an ascension
+  range, and intersects with `runs` rather than overriding it.
+
 `runs` is validated against the character list, **not** against which
 characters have run history. Picking a character you have never played must
 stay selected and show empty stats; validating against the data made it revert
-silently to All runs, and the button did not even highlight.
+silently to All runs, and the button did not even highlight. The ascension
+bounds are fixed at 0–10 for the same reason: derived bounds would make a range
+you have not played unselectable. The game caps at 10 and the highest here is
+8, so the full range excludes nothing.
+
+### The ascension range is summed, not recomputed
+
+A *range* cannot be precomputed the way the six characters are — there are 66
+of them. It is not recomputed per request either. `compute_analytics` builds
+`card_runs_by_scope`, one record per `(character, ascension)` bucket, and
+`sum_card_runs` adds up the buckets a range covers.
+
+This works because every field `_build_card_runs` produces is a count of runs
+and **every run falls in exactly one bucket**, so any scope is the sum of its
+buckets — the same argument that makes the per-character split exact. Bucketing
+costs one pass over the history regardless of how many buckets there are;
+precomputing the ranges themselves would be 66 passes for the same answer.
+`health_check.py` asserts the buckets sum to the unscoped record, which is what
+would catch a run landing in two buckets or none.
+
+**The full range is served from the precomputed record, not summed.** So the
+default page costs exactly what it did before this filter existed, and — more
+usefully — it returns the *same object*, so a bug in the summing path cannot
+quietly change the numbers everyone sees by default.
+
+`card_runs_by_scope` is nested `{character: {ascension: record}}` rather than
+keyed by a `(character, ascension)` tuple. The whole analytics dict is
+serialised by `/api/analytics`, and a tuple key survives `jsonable_encoder` as a
+**list**, which cannot be a dict key at all — three tests fail with
+`TypeError: unhashable type: 'list'` well away from the code that caused it.
+
+**An inverted range is swapped, not honoured.** `asc_min=7&asc_max=2` is a
+mis-click; taking it literally empties the page and reads as a broken filter.
+
+### The headline win rate
+
+The two figures above the grid are the sample every Held and Final number below
+is drawn from. `run_counts_by_scope` is derived from the *same* buckets as
+`card_runs_by_scope`, so the headline and the per-card figures cannot disagree
+about which runs are in scope — counting the runs separately is exactly how
+they would drift. Unscoped it equals `overview`'s total and wins by
+construction, which `tests/test_card_runs.py` pins.
+
+**It follows the run filters only.** `character`, `type` and `rarity` change
+which cards are *listed*, not which runs are counted, so the number is
+deliberately unmoved by three of the five filter rows. That is confusing enough
+to be worth a caption rather than left to be inferred, and it is asserted: the
+rate is identical across `?character=`, `?rarity=` and `?played=1`.
+
+**Empty scope shows `—`, not `0%`.** A zero would claim every run in scope was
+lost, which is a different and much stronger statement than there being none.
+The denominator is always printed alongside for the same reason `_win_rate_key`
+breaks ties on sample size: a rate without one is not interpretable, and this
+codebase has already been bitten by one (`Picked 0/19 (0%)`).
+
+The two bounds are a `<form>`, not links: as anchors the row would need one
+link per endpoint and still could not express a range in one click. That has a
+trap of its own — **a GET form replaces the query string wholesale**, discarding
+even the action's own query, so every other active filter has to be restated as
+a hidden input or it is silently dropped. `filter_hidden()` builds those from
+the same `active_filters` dict `filter_url()` uses, because two hand-maintained
+lists of the dimensions is exactly the drift `filter_url` was written to stop.
 
 "Presence" for `played` is `held > 0`, not the existence of a record.
 `_build_card_runs` also creates records for cards that were merely offered and
@@ -359,22 +442,72 @@ the rendered HTML catches it.
 `card_rankings` is a leaderboard. **Never use it as a lookup table** — use
 `card_runs`, which is untruncated.
 
-"By Win Rate" is the only sort; "By Pick Rate" went with the pick stats.
-It keys on `(rate, sample size)` — rate first, count only to break ties, so a
-2/2 outranks an 8/19, deliberately — and follows the active run scope, so under
-`runs=Defect` it orders by the Defect numbers. `?sort=pickrate` in an old URL
-still returns 200 and simply does not sort.
+**The list is always sorted.** There are three orders — Win Rate (the default),
+Alphabetical and Cost — and no "however it came out of the file" option. There
+used to be, and it was not a neutral order: `cards.json` is only *mostly*
+alphabetical, with 24 inversions where the fetcher appended later batches, so
+"Default" meant an order with no visible meaning that broke alphabetical in 24
+unpredictable places.
+
+**Every key ends in the card name**, which makes each order total: no two cards
+can tie into an arbitrary position. Without that, ties fell back to file order
+and inherited the same problem in miniature.
+
+- **Win Rate** keys on `(-rate, -sample size, name)` — rate first, count only to
+  break ties, so a 2/2 outranks an 8/19, deliberately. It follows the active run
+  scope, so under `runs=Defect` it orders by the Defect numbers. Negated rather
+  than sorted with `reverse=True`, which would flip the name tiebreak into
+  descending too.
+- **Cost** needs a rank, not a string compare: costs are strings and not all are
+  numbers. A plain sort puts `12` before `2`, `?` before `0`, and `Unplayable`
+  between `3` and `4`. `_COST_RANK` puts `?` and then `Unplayable` after every
+  real cost.
+
+An unrecognised `sort` falls back to the default rather than 400ing, so
+`?sort=pickrate` — a live bookmark, since it went with the pick stats — still
+renders a sensible page.
 
 Beware that a sort can be a legitimate no-op. When every key ties, a stable sort
 leaves the order untouched and the visible figures look unsorted, which reads as
-a bug and is not one.
+a bug and is not one. With a fresh save and no run history that is exactly what
+Win Rate does: every rate is 0, and the name tiebreak leaves it alphabetical.
 
 ### Testing this
 
 `tests/test_card_runs.py` builds synthetic runs rather than reading the machine's
-save, so the expected numbers are stated instead of derived. The HTTP-level
-tests assert invariants only — the fixture has no run history, so a count-based
-assertion there would be vacuous or, worse, pass for the wrong reason.
+save, so the expected numbers are stated instead of derived.
+
+**The HTTP fixture is not empty, and is not hermetic.** An earlier version of
+this document claimed it had no run history. It does: `client` drives the real
+app, and `config.SAVE_DIR` auto-detects `%APPDATA%\SlayTheSpire2\...`, which on
+a machine that has played the game resolves to a full save. So an HTTP test that
+does not patch `_get_runs` silently reads **the developer's own runs**.
+
+That is why HTTP tests either assert invariants — relationships that hold at any
+sample size — or **inject runs at the `sts2.app._get_runs` seam**. A count-based
+assertion against the ambient save is the worst of both: it passes here for a
+reason nobody can see and fails for anyone else.
+
+Two tests were in exactly that state and are fixed:
+`test_cards_winrate_sort_matches_displayed_rate` asserted the sort key
+discriminates, which is only true once runs exist; and `test_cards_page_shows_
+pick_rate` asserted the list shows a pick rate, a feature since removed — no
+cards-page template renders "Picked", so it was passing only because its
+fallback branch matched an unrelated `80%` in real data. It is now
+`test_cards_page_ignores_progress_save`, pinning the actual rule.
+
+The check that this stays true: **the suite must pass with `STS2_SAVE_DIR`
+pointed at an empty directory.** It does, all 819 tests.
+
+Injecting runs takes three patches, not one — the analytics cache is keyed by
+ascension on a 60s TTL, so patching the accessor alone serves whatever a
+previous test computed:
+
+```python
+with patch("sts2.app._get_runs", new=AsyncMock(return_value=runs)), \
+     patch("sts2.app._analytics_cache", {}), \
+     patch("sts2.app._analytics_cache_time", {}):
+```
 
 Both behaviours are mutation-checked: disabling the `played` filter and removing
 the per-character split each make exactly one test fail. Worth preserving, since
@@ -417,6 +550,28 @@ corrected by hand and are now stable, since `Colorless` is not protected.
 a run but is in `cards.json` under no id at all — a different problem from the
 suffix mismatch above.
 
+**The wiki has two negative cost sentinels, and they mean opposite things.**
+`Cost = -1` is a **variable (X) cost** — a real, payable card. `Cost = -2` is
+**genuinely unplayable** — Curses, Statuses, Quest items. `_wiki_cost` maps
+them; do not collapse them again.
+
+Both were invisible for a long time because `_LUA_FIELD_RE`'s number branch was
+`\d+`, which matches neither. The field was dropped from the parsed entry
+entirely and the old `or "Unplayable"` fallback then made `-2` right *by
+accident* and `-1` wrong — so Heavenly Drill, Whirlwind, Skewer, Volley,
+Tempest, Cascade, Dirge, Eradicate, Malaise and Multi-Cast rendered with no
+energy orb at all, indistinguishable from a Curse.
+
+The trap on the way out is the mirror image: **fixing the regex without the
+mapping swaps the bug over**, and every Curse comes through as a literal `-2`
+drawn inside an energy orb. The in-memory re-fetch diff caught that — 31 cards
+moving `Unplayable -> '-2'` — before anything was written.
+
+Nothing else needed changing to render it. `cardart.py` keys the orb off
+`cost.lower() == "unplayable"`, so `"X"` already yields an orb with X as its
+text, and the energy sprites are per-character orbs with the number drawn
+separately. `models.py` had documented `"X"` as a valid cost all along.
+
 **19 cards have an empty `rarity`** and are stub records: 16 have no
 description, 18 no art, all defaulting to `type: Skill`, `cost: Unplayable`,
 `character: Colorless` — demonstrably wrong, since Star Blast uses the Regent's
@@ -439,6 +594,19 @@ Editing `sts2/data/cards.json` by hand: it is serialised with
 a trailing newline. Re-serialising with anything else rewrites all 8448 lines
 and buries the real change. Assert the round-trip before writing:
 `json.dumps(json.loads(raw), indent=2) + "\n" == raw`.
+
+**`strategy.json` is hand-authored, and its odd formatting is deliberate — do
+not reformat it.** It is the one data file matching no machine convention, which
+makes it look like drift. It is not. Nothing writes it: the only reference in
+the codebase is a read at `knowledge.py:178`, and it is not in `_save_json`'s
+file list, so no update path touches it.
+
+The layout is hybrid on purpose. The five character records are expanded at
+indent 2, but each nested archetype object and each `general_tips` array is kept
+on a **single dense line**, so one archetype reads as one line instead of eight.
+Running it through `json.dumps(indent=2)` inflates it from 10,223 to 12,325
+bytes and destroys that. The new `_no_data_writes` fixture in `tests/conftest.py`
+will now catch anything that starts writing it.
 
 ---
 

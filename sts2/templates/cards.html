@@ -3,6 +3,32 @@
 {% block title %}Cards{% endblock %}
 {% block content %}
 <h1>Cards ({{ total_cards }})</h1>
+
+{# The sample every Held and Final figure below is drawn from. It follows the
+   run filters only — the character/type/rarity rows change which cards are
+   listed, not which runs are counted — so it is captioned rather than left for
+   the reader to infer from five filter rows. #}
+<div class="stat-grid stat-grid-inline">
+  <div class="stat-box">
+    <div class="num">{{ scope_win_rate ~ '%' if scope_win_rate is not none else '&mdash;'|safe }}</div>
+    <div class="label">Win Rate</div>
+  </div>
+  <div class="stat-box">
+    <div class="num">{{ scope_wins }} / {{ scope_runs }}</div>
+    <div class="label">Runs Won</div>
+  </div>
+</div>
+<p class="text-sm text-muted mb-sm">
+  {%- if scope_runs -%}
+    Stats from {{ selected_runs ~ ' runs' if selected_runs else 'all runs' }}
+    {%- if not asc_is_full_range %}, ascension {{ selected_asc_min }}&ndash;{{ selected_asc_max }}{% endif -%}
+    .
+  {%- else -%}
+    No runs match {{ selected_runs ~ ' at' if selected_runs else '' }} ascension
+    {{ selected_asc_min }}&ndash;{{ selected_asc_max }}, so every figure below is empty.
+  {%- endif -%}
+</p>
+
 {% if total_pages > 1 %}
 <p class="text-sm text-muted mb-sm">Showing {{ (page - 1) * per_page + 1 }}&ndash;{{ [page * per_page, total_cards]|min }} of {{ total_cards }}</p>
 {% endif %}
@@ -13,15 +39,28 @@
     cleared type and rarity as well, and the whole type row dropped rarity.
     cost and keyword have no buttons but are reachable by URL, so they ride
     along too. Omitting page is deliberate: a filter change starts at page 1. -#}
+{%- set active_filters = dict(character=selected_character, type=selected_type,
+                              rarity=selected_rarity, cost=selected_cost,
+                              keyword=selected_keyword, sort=sort_qs,
+                              runs=selected_runs, asc_min=asc_min_qs, asc_max=asc_max_qs,
+                              played=1 if selected_played else '') -%}
 {%- macro filter_url() -%}
-  {%- set params = dict(character=selected_character, type=selected_type,
-                        rarity=selected_rarity, cost=selected_cost,
-                        keyword=selected_keyword, sort=selected_sort,
-                        runs=selected_runs, played=1 if selected_played else '') -%}
+  {%- set params = {} -%}
+  {%- set _ = params.update(active_filters) -%}
   {%- set _ = params.update(kwargs) -%}
   {%- set pairs = [] -%}
   {%- for k, v in params|dictsort if v -%}{%- set _ = pairs.append((k, v)) -%}{%- endfor -%}
   /cards{% if pairs %}?{{ pairs|urlencode }}{% endif %}
+{%- endmacro -%}
+{#- The same dimensions as hidden inputs, for the one control that has to be a
+    form. A GET form replaces the query string wholesale — the action's own
+    query is discarded — so anything not restated here is silently dropped.
+    Built from active_filters so the two cannot drift apart, which is the exact
+    failure filter_url was written to stop. -#}
+{%- macro filter_hidden(skip) -%}
+  {%- for k, v in active_filters|dictsort if v and k not in skip %}
+    <input type="hidden" name="{{ k }}" value="{{ v }}">
+  {%- endfor %}
 {%- endmacro -%}
 <div class="filters">
   {# card_characters, not characters: this row includes Colorless, which the run
@@ -66,9 +105,44 @@
      href="{{ filter_url(played='' if selected_played else 1) }}"
      aria-pressed="{{ 'true' if selected_played else 'false' }}">Played only</a>
 </div>
+{# Narrows the same statistics as the row above — both decide which runs the
+   Held and Final figures count, neither changes which cards are listed. A form
+   rather than links because the two bounds are coupled: as anchors the row
+   would need one link per endpoint and could not express a range in one click.
+   Server-rendered with a submit button, so it works with scripts off. #}
 <div class="filters">
-  <a href="{{ filter_url(sort='') }}" {% if not selected_sort %}class="active"{% endif %}>Default</a>
-  <a href="{{ filter_url(sort='winrate') }}" {% if selected_sort == 'winrate' %}class="active"{% endif %}>By Win Rate</a>
+  <span class="filters-label text-xs text-muted">Ascension:</span>
+  <form class="filters-range" method="get" action="/cards">
+    {{- filter_hidden(['asc_min', 'asc_max']) -}}
+    <select id="asc-min" name="asc_min" class="select-input" aria-label="Minimum ascension">
+      {% for a in ascensions %}
+      <option value="{{ a }}" {% if a == selected_asc_min %}selected{% endif %}>{{ a }}</option>
+      {% endfor %}
+    </select>
+    <span class="text-muted">&ndash;</span>
+    <select id="asc-max" name="asc_max" class="select-input" aria-label="Maximum ascension">
+      {% for a in ascensions %}
+      <option value="{{ a }}" {% if a == selected_asc_max %}selected{% endif %}>{{ a }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn btn-sm">Apply</button>
+  </form>
+  {% if asc_min_qs != '' or asc_max_qs != '' %}
+  <a href="{{ filter_url(asc_min='', asc_max='') }}">Reset</a>
+  {% endif %}
+</div>
+{# Three explicit orders, no "as it came out of the file" option. Win Rate is
+   the default and so links to the empty value, keeping it out of every URL.
+   Each key ends in the card name, so none of them can tie into an arbitrary
+   position. #}
+<div class="filters">
+  <span class="filters-label text-xs text-muted">Sort:</span>
+  <a href="{{ filter_url(sort='') }}"
+     {% if selected_sort == 'winrate' %}class="active"{% endif %}>Win Rate</a>
+  <a href="{{ filter_url(sort='name') }}"
+     {% if selected_sort == 'name' %}class="active"{% endif %}>Alphabetical</a>
+  <a href="{{ filter_url(sort='cost') }}"
+     {% if selected_sort == 'cost' %}class="active"{% endif %}>Cost</a>
 </div>
 
 {# data-* carries the state cards.js needs so it never has to parse the query

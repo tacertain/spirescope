@@ -1,6 +1,6 @@
 """Tests for the CLI entry point (__main__.py)."""
 import sys
-from unittest.mock import MagicMock, patch
+from unittest.mock import patch
 
 import pytest
 
@@ -64,22 +64,29 @@ def test_cli_unknown_command(capsys):
     assert "Unknown command" in out
 
 
+# `update` runs two things: run_fetcher, then _canonicalize_card_rarities().
+# Both must be patched. The second one is not incidental — unpatched it executes
+# scripts/fix_card_rarity.py against the *repo's own* sts2/data/cards.json,
+# rewriting it from a hardcoded table. That reverted hand-edited rarities and
+# left the file in a form health_check flags, from a plain `pytest` run.
+# `_no_data_writes` in conftest.py is the backstop if this is ever undone.
+
 def test_cli_update():
-    mock_fetcher = MagicMock()
     with patch.object(sys, "argv", ["sts2", "update"]), \
-         patch.dict("sys.modules", {"sts2.fetcher": mock_fetcher}), \
-         patch("sts2.__main__.run_fetcher", create=True) as mock_run:
-        # Need to patch the actual import inside main()
-        with patch("sts2.fetcher.run_fetcher") as mock_run:
-            main()
-            mock_run.assert_called_once_with(save_only=False)
+         patch("sts2.fetcher.run_fetcher") as mock_run, \
+         patch("sts2.__main__._canonicalize_card_rarities") as mock_canon:
+        main()
+        mock_run.assert_called_once_with(save_only=False)
+        mock_canon.assert_called_once()
 
 
 def test_cli_update_save_only():
     with patch.object(sys, "argv", ["sts2", "update", "--save-only"]), \
-         patch("sts2.fetcher.run_fetcher") as mock_run:
+         patch("sts2.fetcher.run_fetcher") as mock_run, \
+         patch("sts2.__main__._canonicalize_card_rarities") as mock_canon:
         main()
         mock_run.assert_called_once_with(save_only=True)
+        mock_canon.assert_called_once()
 
 
 def test_cli_community():

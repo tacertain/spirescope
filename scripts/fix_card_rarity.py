@@ -64,20 +64,24 @@ _add("Silent", [
 ], "Common")
 _add("Silent", [
     "Accuracy", "Backstab", "Blur", "Bouncing Flask", "Bubble Bubble",
-    "Calculated Gamble", "Dash", "Escape Plan", "Expertise", "Expose",
+    "Calculated Gamble", "Dash", "Echoing Slash", "Escape Plan", "Expertise", "Expose",
     "Finisher", "Flechettes", "Footwork",
     "Hand Trick", "Haze", "Hidden Daggers", "Infinite Blades", "Leg Sweep",
-    "Memento Mori", "Mirage", "Noxious Fumes", "Outbreak", "Phantom Blades",
+    "Memento Mori", "Mirage", "Noxious Fumes", "Phantom Blades",
     "Pinpoint", "Pounce", "Precise Cut", "Reflex", "Skewer",
     "Speedster", "Strangle", "Tactician", "Up My Sleeve",
 ], "Uncommon")
 # Predator moved Uncommon -> Common in v0.106.0 (wiki Lua module still stale)
 _add("Silent", ["Predator"], "Common")
+# v0.110.0 swapped these two: Outbreak Uncommon -> Rare, Echoing Slash the other
+# way. They are listed in their new groups above. This table is re-applied after
+# every `spirescope update`, so editing cards.json alone does not stick — the
+# next update silently reverts it.
 _add("Silent", [
     "Abrasive", "Adrenaline", "Afterimage", "Assassinate",
-    "Blade of Ink", "Bullet Time", "Burst", "Corrosive Wave", "Echoing Slash",
+    "Blade of Ink", "Bullet Time", "Burst", "Corrosive Wave",
     "Envenom", "Fan of Knives", "Grand Finale", "Knife Trap", "Malaise",
-    "Master Planner", "Murder", "Nightmare", "Serpent Form", "Shadow Step",
+    "Master Planner", "Murder", "Nightmare", "Outbreak", "Serpent Form", "Shadow Step",
     "Shadowmeld", "Sneaky", "Storm of Steel", "The Hunt",
     "Tools of the Trade", "Tracking",
 ], "Rare")

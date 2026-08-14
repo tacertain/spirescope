@@ -15,6 +15,7 @@ from fastapi.responses import HTMLResponse, PlainTextResponse
 from pydantic import ValidationError
 from starlette.responses import StreamingResponse
 
+from sts2.analytics import sum_card_runs
 from sts2.config import CHARACTERS
 from sts2.models import CurrentRun
 from sts2.saves import get_current_run
@@ -255,22 +256,110 @@ async def search(request: Request, q: str = Query("", max_length=200)):
 _CARD_CHARACTERS = [*CHARACTERS, "Colorless"]
 
 
-def _win_rate_key(card_runs: dict):
-    """Sort key for "By Win Rate": (win rate, runs it is drawn from).
+# Every sort key ends in the card name, so the order is total: no two cards can
+# tie into an arbitrary position. That matters more than it sounds — the list
+# used to fall back to the order of cards.json, which is only *mostly*
+# alphabetical (24 inversions, the fetcher having appended later batches), so
+# ties landed in an order with no meaning that anyone could see.
+# Each key is also something the tile actually displays. Sorting on a number the
+# user cannot see is what made this control look broken before.
+
+
+def _sort_key_winrate(card_runs: dict):
+    """(win rate, sample size, name) — the rate descending.
 
     Keyed on "held" — every run the card was in the deck at any point — which is
     the broader of the two rates the tile prints, and the one that matches
-    "picked at any point". It has to be one the tile actually shows: sorting on
-    a number the user cannot see is what made this control look broken before.
-    Runs breaks the tie rather than damping the rate, so a 2/2 does outrank an
-    8/19; that is deliberate.
+    "picked at any point". Sample size breaks the tie rather than damping the
+    rate, so a 2/2 does outrank an 8/19; that is deliberate. Negated rather than
+    sorted with reverse=True, which would also flip the name tiebreak into
+    descending.
     """
     def key(card):
         cr = card_runs.get(card.id, {})
         won = cr.get("held_won", 0)
         runs = won + cr.get("held_lost", 0)
-        return (won / runs if runs else 0.0, runs)
+        rate = won / runs if runs else 0.0
+        return (-rate, -runs, card.name.lower())
     return key
+
+
+def _sort_key_name(_card_runs: dict):
+    return lambda card: card.name.lower()
+
+
+# Costs are strings, and not all of them are numbers. A plain sort would put
+# "12" before "2", "X" before "0", and "Unplayable" between "3" and "4". X is a
+# real, payable cost, so it ranks after the numbers but ahead of the cards that
+# cannot be played at all; "?" is the discovered placeholder with no data.
+_COST_RANK = {"X": (1, 0), "?": (2, 0), "Unplayable": (3, 0)}
+
+
+def _sort_key_cost(_card_runs: dict):
+    def key(card):
+        cost = (card.cost or "").strip()
+        rank = (0, int(cost)) if cost.isdigit() else _COST_RANK.get(cost, (4, 0))
+        return (*rank, card.name.lower())
+    return key
+
+
+# The card list is always sorted; there is no "as it came out of the file"
+# option. An unrecognised value falls back to the default rather than 400ing,
+# so an old bookmark (`?sort=pickrate`, which went with the pick stats) still
+# renders a sensible page.
+_SORTS = {"winrate": _sort_key_winrate, "name": _sort_key_name, "cost": _sort_key_cost}
+_DEFAULT_SORT = "winrate"
+
+
+# The span the ascension dropdowns offer. Fixed rather than derived from the
+# save, for the same reason the run-scope row is validated against CHARACTERS
+# and not against which characters have runs: a range you have not played yet
+# must stay selectable and show empty stats rather than silently snap back.
+# The game caps at 10; the highest seen in this history is 8, so the full range
+# excludes nothing and the default page is unchanged.
+_MIN_ASCENSION = 0
+_MAX_ASCENSION = 10
+_ASCENSIONS = list(range(_MIN_ASCENSION, _MAX_ASCENSION + 1))
+
+
+def _scoped_card_runs(analytics: dict, run_scope: str | None,
+                      asc_min: int, asc_max: int) -> dict:
+    """Per-card run record for the active character *and* ascension scope.
+
+    The full range is served straight from the precomputed record rather than
+    summed, so the default page costs exactly what it did before this filter
+    existed — and, more usefully, it is the same object, so a bug in the summing
+    path cannot quietly change the numbers everyone sees by default.
+    """
+    if asc_min <= _MIN_ASCENSION and asc_max >= _MAX_ASCENSION:
+        return (analytics.get("card_runs_by_character", {}).get(run_scope, {})
+                if run_scope else analytics.get("card_runs", {}))
+    return sum_card_runs(
+        record
+        for character, by_ascension in analytics.get("card_runs_by_scope", {}).items()
+        if run_scope is None or character == run_scope
+        for ascension, record in by_ascension.items()
+        if asc_min <= ascension <= asc_max)
+
+
+def _scoped_run_totals(analytics: dict, run_scope: str | None,
+                       asc_min: int, asc_max: int) -> tuple[int, int]:
+    """(wins, runs) for the active scope — the sample the card figures rest on.
+
+    Walks the same buckets as _scoped_card_runs, so the headline rate and the
+    per-card ones can never disagree about which runs are in scope. With no
+    scope applied this equals overview's total and wins by construction, which
+    is what `tests/test_card_runs.py` pins.
+    """
+    wins = total = 0
+    for character, by_ascension in analytics.get("run_counts_by_scope", {}).items():
+        if run_scope is not None and character != run_scope:
+            continue
+        for ascension, counts in by_ascension.items():
+            if asc_min <= ascension <= asc_max:
+                wins += counts["wins"]
+                total += counts["runs"]
+    return wins, total
 
 
 # A multiple of 12 so the grid never ends on a ragged row. .card-grid is
@@ -287,6 +376,8 @@ async def cards(request: Request, character: str = Query(None, max_length=50),
                 keyword: str = Query(None, max_length=100),
                 sort: str = Query(None, max_length=20), page: int = Query(1, ge=1),
                 runs: str = Query(None, max_length=50),
+                asc_min: int = Query(_MIN_ASCENSION, ge=_MIN_ASCENSION, le=_MAX_ASCENSION),
+                asc_max: int = Query(_MAX_ASCENSION, ge=_MIN_ASCENSION, le=_MAX_ASCENSION),
                 played: bool = Query(False),
                 fragment: bool = Query(False)):
     """The card list, and — with fragment=1 — one batch of its tiles.
@@ -313,8 +404,13 @@ async def cards(request: Request, character: str = Query(None, max_length=50),
     # show empty stats, not silently revert to All runs.
     run_scope = next((c for c in CHARACTERS if c.lower() == runs.lower()), None) \
         if runs else None
-    card_runs = (analytics.get("card_runs_by_character", {}).get(run_scope, {})
-                 if run_scope else analytics.get("card_runs", {}))
+    # An inverted range is a mis-click, not an assertion that nothing matches:
+    # swapping shows what was almost certainly meant, where honouring it would
+    # empty the page and look like the filter was broken.
+    if asc_min > asc_max:
+        asc_min, asc_max = asc_max, asc_min
+    card_runs = _scoped_card_runs(analytics, run_scope, asc_min, asc_max)
+    scope_wins, scope_runs = _scoped_run_totals(analytics, run_scope, asc_min, asc_max)
 
     if played:
         # "In the deck at some point" within the active scope. Not merely having
@@ -324,16 +420,13 @@ async def cards(request: Request, character: str = Query(None, max_length=50),
                      if (card_runs.get(c.id) or {}).get("held_won", 0)
                      + (card_runs.get(c.id) or {}).get("held_lost", 0) > 0]
 
-    # Sort options
-    if sort == "winrate":
-        # Straight from card_runs, which is what the tile displays, so the
-        # order always matches the number under the card. It used to key off
-        # analytics' card_rankings, but compute_analytics truncates that to the
-        # top 30 for the leaderboard — every other card fell back to a constant
-        # and kept its original position, so the sort moved almost nothing.
-        # Rate first, then how many runs it is drawn from, so a 0% card you have
-        # actually played outranks one you have never finished a run with.
-        card_list = sorted(card_list, key=_win_rate_key(card_runs), reverse=True)
+    # Always sorted, and always by a key the tile displays, so the order matches
+    # the numbers under the cards. The win-rate key used to come from analytics'
+    # card_rankings, but compute_analytics truncates that to the top 30 for the
+    # leaderboard, so every other card fell back to a constant and the sort
+    # moved almost nothing.
+    sort = sort if sort in _SORTS else _DEFAULT_SORT
+    card_list = sorted(card_list, key=_SORTS[sort](card_runs))
 
     total_cards = len(card_list)
     total_pages = max(1, math.ceil(total_cards / _CARDS_PER_PAGE))
@@ -350,6 +443,23 @@ async def cards(request: Request, character: str = Query(None, max_length=50),
         "selected_character": character, "selected_type": card_type,
         "selected_rarity": rarity, "selected_cost": cost, "selected_keyword": keyword,
         "selected_sort": sort, "selected_runs": run_scope, "selected_played": played,
+        # Omitted from URLs at the default, like the ascension bounds, so an
+        # unfiltered link stays clean.
+        "sort_qs": sort if sort != _DEFAULT_SORT else "",
+        "selected_asc_min": asc_min, "selected_asc_max": asc_max,
+        "ascensions": _ASCENSIONS,
+        # The sample behind every figure on the page. Rate is None rather than 0
+        # when nothing is in scope: 0% reads as "you lost them all", which is a
+        # different and much more discouraging claim than "there are none".
+        "scope_wins": scope_wins, "scope_runs": scope_runs,
+        "scope_win_rate": round(scope_wins / scope_runs * 100, 1) if scope_runs else None,
+        "asc_is_full_range": asc_min <= _MIN_ASCENSION and asc_max >= _MAX_ASCENSION,
+        # The query-string form of the range: empty at the default bounds, so an
+        # unfiltered URL stays clean and every filter link keeps the range only
+        # when it is actually narrowing something. Computed here rather than in
+        # the template to keep the comparison against the bounds in one place.
+        "asc_min_qs": asc_min if asc_min > _MIN_ASCENSION else "",
+        "asc_max_qs": asc_max if asc_max < _MAX_ASCENSION else "",
         "page": page, "total_pages": total_pages,
         "card_runs": card_runs, "per_page": _CARDS_PER_PAGE,
     })

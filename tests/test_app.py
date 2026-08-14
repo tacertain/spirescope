@@ -34,8 +34,29 @@ async def test_cards_winrate_sort_matches_displayed_rate(client):
     the top 30 for the leaderboard, so all but a handful of cards tied on a
     fallback value and kept their original order — a sort that looked wired up
     and moved almost nothing.
+
+    Runs are injected rather than read from the machine. Unpatched, `_get_runs`
+    falls through to whatever save history the developer happens to have, and
+    the "must discriminate" assertion below then depends on it: with no save it
+    fails, because every card ties at 0/0. Three runs give three distinct rates
+    — Anger 2/2, the Ironclad starters 2/3 (seeded into every Ironclad run),
+    Armaments 0/1 — so the assertion means the same thing everywhere.
     """
-    resp = await client.get("/cards?sort=winrate")
+    from unittest.mock import AsyncMock, patch
+
+    from sts2.models import RunHistory
+
+    runs = [
+        RunHistory(id="w1", character="Ironclad", win=True, deck=["CARD.ANGER"]),
+        RunHistory(id="w2", character="Ironclad", win=True, deck=["CARD.ANGER"]),
+        RunHistory(id="l1", character="Ironclad", win=False, deck=["CARD.ARMAMENTS"]),
+    ]
+    # The analytics cache is keyed by ascension on a 60s TTL, so patching the
+    # accessor alone would serve whatever a previous test computed.
+    with patch("sts2.app._get_runs", new=AsyncMock(return_value=runs)), \
+         patch("sts2.app._analytics_cache", {}), \
+         patch("sts2.app._analytics_cache_time", {}):
+        resp = await client.get("/cards?sort=winrate")
     assert resp.status_code == 200
     tiles = re.findall(
         r'class="gc-title">([^<]+)</p>.*?class="card-tile-meta">(.*?)</div>',
@@ -52,6 +73,9 @@ async def test_cards_winrate_sort_matches_displayed_rate(client):
     assert keys == sorted(keys, reverse=True)
     # and the key has to actually discriminate, not tie everything
     assert len(set(keys)) > 1
+    # The injected runs are what produced that spread, not the ambient save.
+    assert (1.0, 2) in keys, "Anger should read 2/2 from the injected runs"
+    assert (0.0, 1) in keys, "Armaments should read 0/1"
 
 
 async def test_cards_fragment_returns_tiles_only(client):
@@ -915,19 +939,40 @@ async def test_robots_txt_references_sitemap(client):
     assert "sitemap.xml" in resp.text.lower()
 
 
-async def test_cards_page_shows_pick_rate(client):
-    """Cards list should show pick rate when card_stats data exists."""
+async def test_cards_page_ignores_progress_save(client):
+    """Every figure on a tile comes from the run files; progress.save is not read.
+
+    This replaces a test that asserted the opposite — that the list *shows* a
+    pick rate. Pick stats were removed from the cards page (see DESIGN.md: the
+    counters exclude events entirely and treat shops asymmetrically, so the
+    quotient answers nothing). No cards-page template renders "Picked" any more;
+    the old test survived only because its fallback branch matched an unrelated
+    "80%" somewhere in the developer's real data, and it failed outright against
+    an empty save.
+
+    Stated as an equivalence rather than an absence, so it also catches
+    progress.save being wired back in under a different label.
+    """
     from unittest.mock import AsyncMock, patch
 
     from sts2.models import PlayerProgress
 
-    mock_progress = PlayerProgress(
+    progress = PlayerProgress(
         card_stats={"CARD.BASH": {"picked": 8, "skipped": 2, "won": 5, "lost": 3}},
     )
-    with patch("sts2.app._get_progress", new=AsyncMock(return_value=mock_progress)):
-        resp = await client.get("/cards")
-    if resp.status_code == 200 and ("CARD.BASH" in resp.text or "Bash" in resp.text):
-        assert "Picked" in resp.text or "80%" in resp.text
+
+    def metas(text):
+        return re.findall(r'class="card-tile-meta">(.*?)</div>', text, re.S)
+
+    with patch("sts2.app._get_progress", new=AsyncMock(return_value=progress)):
+        with_progress = await client.get("/cards")
+    with patch("sts2.app._get_progress", new=AsyncMock(return_value=None)):
+        without_progress = await client.get("/cards")
+
+    assert with_progress.status_code == 200
+    assert without_progress.status_code == 200
+    assert metas(with_progress.text) == metas(without_progress.text)
+    assert "Picked" not in with_progress.text
 
 
 async def test_search_results_link_to_relic_detail(client):

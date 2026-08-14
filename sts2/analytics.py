@@ -95,6 +95,27 @@ def _build_card_runs(runs: list[RunHistory],
     return out
 
 
+def sum_card_runs(records) -> dict[str, dict]:
+    """Add per-card run records together, field by field.
+
+    Every field _build_card_runs produces is a count of runs, and a run falls
+    into exactly one (character, ascension) bucket, so the record for any set of
+    buckets is the sum of theirs. That is what lets the cards page scope to an
+    ascension *range* without recomputing: 66 buckets are built once, and a
+    range is added up from the ones it covers.
+
+    It is the same argument that makes the per-character split exact, and
+    `health_check.py` asserts both.
+    """
+    out: dict[str, dict] = {}
+    for record in records:
+        for card_id, fields in record.items():
+            target = out.setdefault(card_id, {})
+            for field, value in fields.items():
+                target[field] = target.get(field, 0) + value
+    return out
+
+
 def compute_analytics(runs: list[RunHistory], card_stats: dict = None, kb=None) -> dict:
     """Compute aggregate analytics from all completed runs.
 
@@ -169,6 +190,34 @@ def compute_analytics(runs: list[RunHistory], card_stats: dict = None, kb=None) 
         character: _build_card_runs(
             [r for r in runs if r.character == character], starters_by_char)
         for character in {r.character for r in runs if r.character}
+    }
+    # The same record split finer, character then ascension, so the cards page
+    # can also scope to an ascension range. Bucketing rather than precomputing
+    # every range is what keeps this cheap: each run is processed exactly once
+    # no matter how many buckets there are, and a range is summed from them via
+    # sum_card_runs. Precomputing the ranges themselves would be 66 passes over
+    # the whole history for the same answer.
+    # Nested rather than keyed by a (character, ascension) tuple because this
+    # whole dict is serialised by /api/analytics, and a tuple key survives
+    # jsonable_encoder as a *list* — which then cannot be a dict key at all.
+    runs_by_scope: dict[str, dict[int, list[RunHistory]]] = defaultdict(
+        lambda: defaultdict(list))
+    for run in runs:
+        runs_by_scope[run.character][run.ascension].append(run)
+    card_runs_by_scope = {
+        character: {ascension: _build_card_runs(bucket, starters_by_char)
+                    for ascension, bucket in by_ascension.items()}
+        for character, by_ascension in runs_by_scope.items()
+    }
+    # How many runs each of those buckets holds, so a page showing scoped card
+    # statistics can also say how large the sample behind them is. Derived from
+    # the same buckets rather than counted separately, so the headline figure
+    # and the per-card ones cannot disagree about which runs are in scope.
+    run_counts_by_scope = {
+        character: {ascension: {"runs": len(bucket),
+                                "wins": sum(1 for r in bucket if r.win)}
+                    for ascension, bucket in by_ascension.items()}
+        for character, by_ascension in runs_by_scope.items()
     }
 
     card_rankings = []
@@ -736,6 +785,8 @@ def compute_analytics(runs: list[RunHistory], card_stats: dict = None, kb=None) 
         "card_rankings": card_rankings[:30],
         "card_runs": card_runs,
         "card_runs_by_character": card_runs_by_character,
+        "card_runs_by_scope": card_runs_by_scope,
+        "run_counts_by_scope": run_counts_by_scope,
         "relic_rankings": relic_rankings[:20],
         "relic_rankings_by_character": relic_rankings_by_character,
         "character_breakdown": character_breakdown,

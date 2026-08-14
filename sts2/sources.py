@@ -51,9 +51,39 @@ class Sts2ggSource:
 # ── wiki.gg Lua module parsing ──
 
 _LUA_ENTRY_RE = re.compile(r'\["((?:[^"\\]|\\.)+)"\]\s*=\s*\{')
+# The number branch must accept a leading minus. Without it `Cost = -1` — the
+# wiki's encoding for a variable (X) cost — matched nothing, so the field was
+# dropped from the entry entirely and the caller's `or "Unplayable"` fallback
+# turned ten real cards into unplayable ones.
 _LUA_FIELD_RE = re.compile(
-    r'(\w+)\s*=\s*(?:"((?:[^"\\]|\\.)*)"|(\d+)|(true|false))'
+    r'(\w+)\s*=\s*(?:"((?:[^"\\]|\\.)*)"|(-?\d+)|(true|false))'
 )
+
+
+def _wiki_cost(value) -> str:
+    """The wiki's Cost field as a cost string.
+
+    The wiki uses two different sentinels, and they mean opposite things:
+
+      -1  variable cost — played for X energy, and the game draws an X in the orb
+      -2  genuinely unplayable — Curses, Statuses, Quest items; no orb at all
+
+    Both used to be invisible here. `_LUA_FIELD_RE` only matched `\\d+`, so
+    neither survived parsing and the field was dropped from the entry entirely;
+    the caller's `or "Unplayable"` fallback then made -2 right *by accident* and
+    -1 wrong, which is what rendered Heavenly Drill and nine others as Curses.
+    Fixing the regex without this mapping would have swapped the bug over — the
+    Curses would have come through as a literal "-2" in an energy orb.
+
+    Any other negative is treated as unplayable: it cannot be drawn as a number,
+    and no other sentinel has been observed.
+    """
+    if value is None or value == "":
+        return "Unplayable"
+    text = str(value)
+    if text == "-1":
+        return "X"
+    return "Unplayable" if text.startswith("-") else text
 
 
 def _parse_lua_table(content: str) -> dict[str, dict]:
@@ -231,7 +261,7 @@ class WikiggSource:
                     "id": game_id,
                     "name": name,
                     "character": character,
-                    "cost": str(fields.get("Cost", "")) or "Unplayable",
+                    "cost": _wiki_cost(fields.get("Cost")),
                     "type": str(fields.get("Type", "Skill")),
                     "rarity": _WIKI_RARITY_MAP.get(rarity, rarity),
                     "description": desc,

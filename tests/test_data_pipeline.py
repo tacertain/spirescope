@@ -12,6 +12,7 @@ from sts2.sources import (
     _split_wiki_text,
     _strip_char_suffix,
     _strip_wiki_templates,
+    _wiki_cost,
 )
 
 LUA_FIXTURE = '''
@@ -36,6 +37,13 @@ local all_data = {
     Type = "Skill",
     Rarity = "Rare",
     Text = "Apply 1 $Vulnerable to {{C2|Someone}}."
+  },
+  ["Whirlwind"] = {
+    Cost = -1,
+    Color = "Ironclad",
+    Type = "Attack",
+    Rarity = "Uncommon",
+    Text = "Deal [5|8] damage to ALL enemies X times."
   }
 }
 '''
@@ -45,11 +53,32 @@ local all_data = {
 
 def test_parse_lua_table():
     entries = _parse_lua_table(LUA_FIXTURE)
-    assert len(entries) == 3
+    assert len(entries) == 4
     strike = entries["Strike (Ironclad)"]
     assert strike == {"Cost": 1, "Color": "Ironclad", "Type": "Attack",
                       "Rarity": "Basic", "Text": "Deal [6|9] damage."}
     assert entries['Say "Hi"']["Cost"] == 2
+
+
+def test_parse_lua_table_keeps_negative_costs():
+    """`Cost = -1` is the wiki's encoding for a variable (X) cost. The number
+    branch used to be `\\d+`, so it matched nothing and the field was dropped
+    from the entry entirely — which the caller then read as unplayable."""
+    whirlwind = _parse_lua_table(LUA_FIXTURE)["Whirlwind"]
+    assert whirlwind["Cost"] == -1, "the field must survive parsing at all"
+
+
+def test_wiki_cost_separates_the_two_negative_sentinels():
+    """-1 and -2 mean opposite things and render differently: X gets an energy
+    orb, unplayable gets none at all. Fixing the regex without this mapping
+    would have put a literal "-2" in every Curse's orb."""
+    assert _wiki_cost(-1) == "X"
+    assert _wiki_cost(-2) == "Unplayable"
+    assert _wiki_cost(-3) == "Unplayable", "an unknown negative is not a number to draw"
+    assert _wiki_cost(0) == "0"
+    assert _wiki_cost(2) == "2"
+    assert _wiki_cost(None) == "Unplayable"
+    assert _wiki_cost("") == "Unplayable"
 
 
 def test_split_wiki_text_alternations_and_icons():

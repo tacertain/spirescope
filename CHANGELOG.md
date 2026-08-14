@@ -2,7 +2,104 @@
 
 ## Unreleased
 
+### Added
+
+- **Card statistics can be scoped to an ascension range.** Two dropdowns on
+  `/cards`, defaulting to the full 0–10 span, narrow the Held and Final figures
+  to runs in that range. It scopes the numbers, not the listing — the same
+  cards stay on the page — and composes with the existing per-character run
+  scope, so "my Regent runs at ascension 5–6" is one selection. The range is
+  summed from precomputed `(character, ascension)` buckets rather than
+  recomputed, which costs one pass over the history no matter how many ranges
+  are asked for; `health_check.py` asserts those buckets sum to the unscoped
+  record. An inverted range is swapped rather than honoured literally, which
+  would empty the page and read as a broken filter.
+- **The cards page reports the win rate of the runs it is scoped to.** Two
+  figures above the grid — the rate, and the won-over-played count behind it —
+  following the run filters only, since the character, type and rarity rows
+  change which cards are listed rather than which runs are counted. That
+  distinction is captioned rather than left to be inferred from five filter
+  rows. With nothing in scope the rate reads `—`, not `0%`, which would claim
+  every run was lost instead of that there were none.
+
+### Changed
+
+- **The cards page always sorts, and defaults to win rate.** The "Default"
+  option is gone. It was not a neutral order: it was the order of `cards.json`,
+  which is only mostly alphabetical — 24 inversions where the fetcher appended
+  later batches — so it broke alphabetical in places nobody could predict. The
+  three orders are now Win Rate (default), Alphabetical, and Cost, and every one
+  of them ends in the card name, so no two cards can tie into an arbitrary
+  position. Cost needs a rank rather than a string compare, since costs are
+  strings and not all are numbers: a plain sort puts `12` before `2` and
+  `Unplayable` between `3` and `4`. An unrecognised `sort` value falls back to
+  the default instead of rendering unsorted.
+
 ### Fixed
+
+- **`pytest` no longer rewrites `sts2/data/cards.json`.** Two CLI tests mocked
+  `run_fetcher` but not the `_canonicalize_card_rarities()` call on the next
+  line, so a plain test run executed `scripts/fix_card_rarity.py` against the
+  repo's own data — reverting hand-edited rarities and leaving the file in a
+  form `health_check.py` rejects. It presented as the *editor* having gone
+  wrong, and took a full bisect of the suite to pin down. Both tests now patch
+  it and assert it is called, and a session-scoped `conftest.py` fixture fails
+  the run if anything modifies `sts2/data/`, so the next instance is caught
+  where it happens rather than several steps downstream.
+- **Two route tests no longer depend on the developer's own save history.** The
+  HTTP fixture drives the real app, and `config.SAVE_DIR` auto-detects a save
+  path, so a test that does not patch `_get_runs` reads whatever runs happen to
+  be on the machine. `test_cards_winrate_sort_matches_displayed_rate` asserted
+  that the sort key discriminates — true only once runs exist — and now injects
+  three runs at the `_get_runs` seam. `test_cards_page_shows_pick_rate` asserted
+  the list shows a pick rate, a feature since removed: no cards-page template
+  renders "Picked", so it was passing only because its fallback branch matched
+  an unrelated "80%" in real data. It is now
+  `test_cards_page_ignores_progress_save`, which pins the actual rule — that
+  every tile figure comes from the run files — by asserting the tiles render
+  identically with and without a progress.save. The whole suite now passes with
+  `STS2_SAVE_DIR` pointed at an empty directory.
+- **`spirescope update` no longer leaves the health check failing.**
+  `_save_json` wrote `ensure_ascii=False` and no trailing newline, contradicting
+  the serialisation `OPERATIONS.md` documents and `health_check.py` asserts, so
+  the round-trip check FAILed after every update — a check that fails after the
+  most routine operation in the project is one you learn to ignore. Escaping
+  non-ASCII is also defensive on Windows: a file with no byte above 0x7F cannot
+  be mangled by the PowerShell ANSI/BOM round-trip both docs warn about. This
+  normalises `events.json`, `relics.json` and `potions.json` on the next update.
+- **Variable-cost cards show their X again.** Heavenly Drill, Whirlwind,
+  Skewer, Volley, Tempest, Cascade, Dirge, Eradicate, Malaise and Multi-Cast
+  were stored as `Unplayable`, so they rendered with no energy orb at all —
+  indistinguishable from a Curse — and sorted with the Statuses. The wiki had
+  the value all along: it writes `Cost = -1` for a variable cost and `Cost = -2`
+  for genuinely unplayable, and the Lua field parser's number branch was `\d+`,
+  which matched neither. The field was dropped from the record entirely, and the
+  `or "Unplayable"` fallback made `-2` right by accident and `-1` wrong. The
+  parser now accepts negatives and the two sentinels are mapped apart, which
+  also stops the mirror-image bug where every Curse would have rendered a
+  literal `-2` inside an orb. Nothing else needed changing: `cardart.py` already
+  draws an orb for any cost that is not `Unplayable`, and `models.py` had
+  documented `"X"` as a valid cost from the start.
+- **Four card rarities corrected to the v0.110.0 balance patch.** Abundance
+  Event -> Ancient, Waste Away Token -> Status, Outbreak Uncommon -> Rare and
+  Echoing Slash Rare -> Uncommon. Editing `cards.json` alone was not enough:
+  `spirescope update` re-applies `scripts/fix_card_rarity.py`, whose hardcoded
+  table held the old values, so the change had to be made there too or the next
+  update would have silently reverted it. Abundance and Waste Away also needed
+  their `character` moved to Colorless, because that script derives rarity from
+  character for Event/Token/Quest/Status/Curse — the same route the Ancient
+  boons were corrected by. Eight further rarity changes the wiki reports
+  were deliberately not applied: they sit on the suffixed duplicate records
+  (`CARD.MAUL_EVENT` and friends) that `knowledge.py` drops at load, and their
+  base records already hold the corrected value, so editing them would be diff
+  noise with no visible effect. Note the two Silent cards changed in a release
+  newer than any run in this save, so their existing statistics describe the
+  pre-patch card; the "Changed v0.110.0" tag on the tile is the disclosure.
+- **The v0.103.2 and v0.103.3 patch eras are recorded.** 58 of 142 runs — 41% of
+  the history — resolved to the "unmapped" era, and `compute_era_split`
+  deliberately excludes those rather than guess, so they were silently missing
+  from every before/after comparison. Outbreak's pre-patch sample was reading 4
+  runs when the card is in 6. Nothing is unmapped now.
 
 - **Desktop windows no longer render the mobile layout.** Every page laid
   itself out in a 560px column regardless of window size, so the auto-fill

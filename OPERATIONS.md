@@ -171,6 +171,29 @@ most common way to conclude a fix "did not work".
 `.venv\Scripts\spirescope.exe` open, so the install half-fails and leaves the
 package unimportable.
 
+**A hand-edited rarity does not survive on its own.** `spirescope update` runs
+`_canonicalize_card_rarities()` after the fetcher, which executes
+`scripts/fix_card_rarity.py` and rewrites rarities from a **hardcoded table**.
+To change a rarity, edit **`scripts/fix_card_rarity.py` as well as
+`cards.json`**, or the next update silently reverts it. Its `--dry-run` reports
+what it would change and is the quickest way to confirm an edit will stick:
+
+```bash
+python scripts/fix_card_rarity.py --dry-run
+```
+
+This was worse than it sounds: two CLI tests mocked `run_fetcher` but not that
+call, so a plain `pytest` rewrote `cards.json` too. Both now patch it, and a
+session-scoped fixture in `tests/conftest.py` fails the run if anything modifies
+`sts2/data/`. If that fixture ever trips, the test is writing to the repo
+instead of `tmp_path` — fix the test, do not relax the fixture.
+
+**Rarity that is derived from `character` needs the character changed too.**
+`fix_card_rarity.py` forces `rarity = character` for Event/Token/Quest/Status/
+Curse, so a card recorded under one of those characters cannot hold any other
+rarity. Moving it to `Colorless` is the documented route — nothing protects
+`Colorless` — and is how the Ancient boons were corrected.
+
 **Do not round-trip files through PowerShell `Get-Content`/`Set-Content`.**
 Windows PowerShell 5.1 reads as ANSI and writes UTF-8 *with BOM*, which mangles
 every box-drawing character in `style.css`.

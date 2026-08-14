@@ -126,6 +126,20 @@ def main() -> int:
     check("per-character records sum to the overall", not mismatched,
           ", ".join(mismatched[:5]))
 
+    # The ascension range filter sums (character, ascension) buckets rather than
+    # recomputing, which is only sound if every run lands in exactly one bucket.
+    # A run whose character or ascension changed shape would show up here as a
+    # range that quietly disagrees with All runs.
+    buckets = [b for by_asc in analytics["card_runs_by_scope"].values()
+               for b in by_asc.values()]
+    scope_mismatched = []
+    for cid, rec in card_runs.items():
+        for field, total in rec.items():
+            if sum(b.get(cid, {}).get(field, 0) for b in buckets) != total:
+                scope_mismatched.append(f"{cid}.{field}")
+    check("(character, ascension) buckets sum to the overall", not scope_mismatched,
+          ", ".join(scope_mismatched[:5]))
+
     # kept is the Final line's denominator; the tile relies on that to omit it.
     bad_kept = [cid for cid, v in card_runs.items()
                 if v["kept"] != v["final_won"] + v["final_lost"]]

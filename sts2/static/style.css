@@ -481,6 +481,10 @@ h3 { font-size: 1.05rem; margin: 1rem 0 0.5rem; font-weight: 600; }
    buttons it shares a row with. */
 .filters-toggle { margin-left: auto; }
 
+/* The ascension range. A form is one flex item inside .filters, so it needs its
+   own flex context or the two selects and their separator stack. */
+.filters-range { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; }
+
 /* Built by cards.js, so it only exists when scripts are on; without them the
    server-rendered pagination stays visible instead. */
 .load-more {
@@ -553,6 +557,10 @@ h3 { font-size: 1.05rem; margin: 1rem 0 0.5rem; font-weight: 600; }
 
 /* ── Stats ── */
 .stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 0.75rem; margin-bottom: 2rem; }
+/* A couple of boxes reporting on the page rather than a full dashboard row.
+   auto-fill would stretch two boxes across the whole container; this caps them
+   at their natural width and leaves the rest of the row empty. */
+.stat-grid-inline { grid-template-columns: repeat(auto-fit, minmax(150px, 200px)); justify-content: start; margin-bottom: 1rem; }
 .stat-box {
   background: linear-gradient(145deg, var(--bg2), var(--card-bg));
   border: 2px solid var(--gold);

@@ -1,4 +1,5 @@
 """Shared test configuration and fixtures."""
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -52,6 +53,34 @@ def pytest_configure(config):
 def _clear_rate_limits():
     """Clear rate limit store before every test to prevent cross-test 429s."""
     _rate_limit_store.clear()
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _no_data_writes():
+    """Fail the run if the suite modifies sts2/data/.
+
+    Tests must write to tmp_path, never to the repo's own data. Two CLI tests
+    did: they mocked `run_fetcher` but not the `_canonicalize_card_rarities()`
+    call after it, so a plain `pytest` rewrote cards.json from a hardcoded rarity
+    table — silently reverting hand edits and leaving the file in a form
+    health_check rejects. It looked like the *editor* had gone wrong, and cost a
+    long bisect to pin on the test suite.
+
+    Hashes, not mtimes: a test that rewrites a file with identical content is
+    harmless, and mtime alone would cry wolf over it.
+    """
+    def snapshot() -> dict[str, str]:
+        return {p.name: hashlib.sha256(p.read_bytes()).hexdigest()
+                for p in sorted(DATA_DIR.glob("*.json"))}
+
+    before = snapshot()
+    yield
+    changed = sorted(name for name, digest in snapshot().items()
+                     if before.get(name) != digest)
+    assert not changed, (
+        f"the test suite modified sts2/data/: {', '.join(changed)}. "
+        "Point the code under test at tmp_path, or patch the writer."
+    )
 
 
 @pytest_asyncio.fixture(scope="module")
