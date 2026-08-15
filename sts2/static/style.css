@@ -432,10 +432,16 @@ h3 { font-size: 1.05rem; margin: 1rem 0 0.5rem; font-weight: 600; }
   display: flex; align-items: center; justify-content: center;
   text-align: center; line-height: 1.1; margin: 0;
 }
+/* The game shrinks a long name, it never wraps one: card.tscn's TitleLabel is a
+   MegaLabel with MaxFontSize = 26 and no autowrap, so it steps the font down
+   until the name fits the banner on one line. `nowrap` is the half of that CSS
+   can do alone; cards.js measures the overflow and sets --fit. A ratio rather
+   than a px size, so it survives the card being any width — the text scales
+   with the font, so the ratio that fits at one size fits at every size. */
 .gc-title {
   left: 15%; top: 1.659%; width: 70%; height: 12.796%;
   font-family: 'Kreon', Georgia, serif; font-weight: 700;
-  font-size: 8.667cqw; color: #f5ecd8;
+  font-size: calc(8.667cqw * var(--fit, 1)); white-space: nowrap; color: #f5ecd8;
   text-shadow: 0 0.35cqw 0 #2b1a12, 0 -0.35cqw 0 #2b1a12,
                0.35cqw 0 0 #2b1a12, -0.35cqw 0 0 #2b1a12;
 }

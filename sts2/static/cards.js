@@ -12,7 +12,59 @@
   'use strict';
 
   var grid = document.getElementById('card-grid');
-  if (!grid || !window.fetch) return;
+  if (!grid) return;
+
+  // ── Title fitting ──────────────────────────────────────────────────────
+  //
+  // The game shrinks a long card name to fit the banner on one line and never
+  // wraps it: card.tscn's TitleLabel is a MegaLabel with MaxFontSize = 26 and
+  // no autowrap. style.css supplies the nowrap; the shrink needs a measurement,
+  // and this is the only place that can take one — the server cannot, because
+  // the width depends on the font (self-hosted Kreon, loaded async) and the
+  // names are localisable, so a table baked at render time would be right in
+  // English and wrong everywhere else.
+  //
+  // This does not fork how a tile is built. Jinja still renders every tile,
+  // including the batches fetched below; all this does is set one number on
+  // titles that overflow — 8 of 611 in English, by at most 8%.
+  var MIN_FIT = 0.75;
+
+  function fitTitle(el) {
+    if (el.dataset.fitted) return;
+    el.dataset.fitted = '1';
+    // A Range measures the text itself. scrollWidth would not: .gc-title is a
+    // centring flex container, so an overflowing name spills out of both ends
+    // and only the right-hand half would be counted.
+    var range = document.createRange();
+    range.selectNodeContents(el);
+    var text = range.getBoundingClientRect().width;
+    range.detach();
+    var box = el.clientWidth;
+    if (!text || !box || text <= box) return;
+    // A hair under the exact ratio, so sub-pixel rounding cannot leave the name
+    // one pixel too wide and wrap it anyway — which is what "Manifest
+    // Authority" does at exactly 1.000 of the box.
+    var fit = (box / text) * 0.99;
+    el.style.setProperty('--fit', (fit < MIN_FIT ? MIN_FIT : fit).toFixed(3));
+  }
+
+  function fitTitles() {
+    var titles = grid.querySelectorAll('.gc-title:not([data-fitted])');
+    for (var i = 0; i < titles.length; i++) fitTitle(titles[i]);
+  }
+
+  // Measuring before Kreon arrives measures the Georgia fallback, whose metrics
+  // are not Kreon's — every ratio would be wrong, and `font-display: swap`
+  // guarantees the first paint is the fallback.
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(fitTitles);
+  } else {
+    fitTitles();
+  }
+
+  // ── Load-more ──────────────────────────────────────────────────────────
+
+  if (!window.fetch) return;
 
   // dataset.batch, not dataset.page — see the note in cards.html.
   var page = parseInt(grid.dataset.batch, 10);
@@ -76,6 +128,9 @@
         // markup would rebuild every tile already on screen and restart each
         // image load.
         while (slot.firstChild) grid.appendChild(slot.firstChild);
+        // The font is long since loaded by the time anyone clicks, and the new
+        // tiles are the only unfitted ones left.
+        fitTitles();
 
         page += 1;
         nextUrl = nextUrl.replace(/([?&]page=)\d+/, '$1' + (page + 1));
