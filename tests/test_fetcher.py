@@ -278,6 +278,29 @@ class TestScrapeCards:
         assert cards[0]["type"] == "Attack"
         assert cards[0]["cost"] == "2"
         assert "Vulnerable" in cards[0]["keywords"]
+        assert "star_cost" not in cards[0], "no Ironclad card charges Stars"
+
+    def test_parses_the_regents_two_star_cost_encodings(self, tmp_path):
+        """This source spells a star cost two ways — `starCost` for a number,
+        `costsStarX` for the variable one, mirroring its `costsX` energy flag."""
+        fixed = json.dumps({
+            "id": "resonance-the-regent", "category": "CARD", "name": "Resonance",
+            "character": "The Regent", "energy": 1, "starCost": 2,
+            "cardType": "Skill", "rarity": "Uncommon", "description": "Gain 1 Strength.",
+        })
+        variable = json.dumps({
+            "id": "stardust-the-regent", "category": "CARD", "name": "Stardust",
+            "character": "The Regent", "energy": 0, "costsStarX": True,
+            "cardType": "Attack", "rarity": "Uncommon",
+            "description": "Deal 5 damage to a random enemy X times.",
+        })
+        with patch("sts2.fetcher.DATA_DIR", tmp_path):
+            cards = _scrape_cards(f"<html>{fixed} {variable}</html>")
+        by_name = {c["name"]: c for c in cards}
+        assert (by_name["Resonance"]["cost"], by_name["Resonance"]["star_cost"]) == ("1", "2")
+        # 0 energy is a real cost here, not a missing one, and the star cost is
+        # what the card actually charges.
+        assert (by_name["Stardust"]["cost"], by_name["Stardust"]["star_cost"]) == ("0", "X")
 
     def test_deduplicates_same_wiki_id(self, tmp_path):
         card_json = json.dumps({

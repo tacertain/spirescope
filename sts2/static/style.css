@@ -419,11 +419,16 @@ h3 { font-size: 1.05rem; margin: 1rem 0 0.5rem; font-weight: 600; }
    YIQ matrix instead and writes one variant per tint. */
 .gc-plaque  { left: 39.833%; top: 50.237%; width: 20.333%; height: 8.768%; }
 .gc-energy  { left: -5.333%; top: -3.791%; width: 21.333%; height: 15.166%; }
+/* The Regent's star orb, from card.tscn's StarIcon on the same 300x422 card
+   every percentage here is measured against: 58x58 at (-36, 22), against the
+   energy orb's 64x64 at (-16, -16). Deliberately overlapping the card edge and
+   the energy orb above it — that is where the game hangs it. */
+.gc-star    { left: -12%; top: 5.213%; width: 19.333%; height: 13.744%; }
 
 /* Text layers. The game outlines rather than shadows, so the title and cost
    get a four-way text-shadow ring; a real -webkit-text-stroke would thin the
    glyphs from the inside and Kreon is already fairly light. */
-.gc-title, .gc-type, .gc-cost, .gc-text {
+.gc-title, .gc-type, .gc-cost, .gc-star-cost, .gc-text {
   display: flex; align-items: center; justify-content: center;
   text-align: center; line-height: 1.1; margin: 0;
 }
@@ -440,6 +445,18 @@ h3 { font-size: 1.05rem; margin: 1rem 0 0.5rem; font-weight: 600; }
   font-size: 10.667cqw; color: #fff;
   text-shadow: 0 0.35cqw 0 #2b1a12, 0 -0.35cqw 0 #2b1a12,
                0.35cqw 0 0 #2b1a12, -0.35cqw 0 0 #2b1a12;
+}
+/* StarLabel, tracking its own node rather than .gc-cost: 22px against the
+   energy label's 32, and the scene's own colours — cream on a teal outline,
+   which reads against the cyan orb where the brown ring above does not. Those
+   are taken literally here, unlike EnergyLabel's pure green, which is a state
+   the game recolours rather than the resting card. */
+.gc-star-cost {
+  left: -12%; top: 5.213%; width: 19.333%; height: 13.744%;
+  font-family: 'Kreon', Georgia, serif; font-weight: 700;
+  font-size: 7.333cqw; color: #fff6e2;
+  text-shadow: 0 0.3cqw 0 #1a5e6b, 0 -0.3cqw 0 #1a5e6b,
+               0.3cqw 0 0 #1a5e6b, -0.3cqw 0 0 #1a5e6b;
 }
 /* TypeLabel is black at 75% on the plaque, and the game sets its text in title
    case ("Attack", not "ATTACK") — cards.json already stores it that way, so it
@@ -538,6 +555,11 @@ h3 { font-size: 1.05rem; margin: 1rem 0 0.5rem; font-weight: 600; }
 .danger-high { color: var(--red); font-weight: 600; }
 .danger-extreme { color: #ff4444; font-weight: 700; }
 .tag-cost { background: var(--bg3); color: var(--text); border: 1px solid var(--border); font-weight: 700; min-width: 24px; text-align: center; }
+/* Cyan, sampled off the game's own star orb (#30c0f0) rather than the Regent's
+   orange — the currency has its own colour and the character already has one.
+   Named -star-cost, not -star: `tag-star` is a prefix of the `tag-starter`
+   rarity tag, which no CSS selector confuses but every reader and grep does. */
+.tag-star-cost { background: rgba(48,192,240,0.12); color: #4cc5f0; border: 1px solid rgba(48,192,240,0.3); font-weight: 700; text-align: center; }
 .tag-mod { background: rgba(201,123,42,0.15); color: var(--orange); border: 1px solid rgba(201,123,42,0.3); }
 .tag-discovered { background: rgba(74,158,92,0.1); color: var(--green); border: 1px solid rgba(74,158,92,0.25); }
 .tag-reddit { background: rgba(255,69,0,0.12); color: #ff6a33; border: 1px solid rgba(255,69,0,0.25); }

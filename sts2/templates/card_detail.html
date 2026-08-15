@@ -8,6 +8,7 @@
 <div class="detail-header">
   <h1><span class="char-{{ card.character|lower }}">{{ card.name }}</span>
     <span class="tag tag-cost text-base">{{ card.cost }}</span>
+    {% if card.star_cost %}<span class="tag tag-star-cost text-base" title="Star cost — the Regent's second currency">&#9733;{{ card.star_cost }}</span>{% endif %}
     <span class="tag tag-{{ card.type|lower }}">{{ card.type }}</span>
     <span class="tag tag-{{ card.rarity|lower }}">{{ card.rarity }}</span>
     {% if card.tier %}<span class="tag" style="background:var(--bg3);color:var(--yellow);border:1px solid var(--border);font-size:1rem">{{ card.tier }}-Tier</span>{% endif %}
@@ -79,7 +80,7 @@
 <div class="grid grid-3">
 {% for s in synergies %}
 <a href="/cards/{{ s.id }}" class="card card-link">
-  <h3><span class="char-{{ s.character|lower }}">{{ s.name }}</span> <span class="tag tag-cost">{{ s.cost }}</span></h3>
+  <h3><span class="char-{{ s.character|lower }}">{{ s.name }}</span> <span class="tag tag-cost">{{ s.cost }}</span>{% if s.star_cost %} <span class="tag tag-star-cost" title="Star cost">&#9733;{{ s.star_cost }}</span>{% endif %}</h3>
   <p><span class="tag tag-{{ s.type|lower }}">{{ s.type }}</span></p>
   <p>{{ s.description }}</p>
 </a>

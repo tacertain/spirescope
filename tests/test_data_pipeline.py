@@ -13,6 +13,7 @@ from sts2.sources import (
     _strip_char_suffix,
     _strip_wiki_templates,
     _wiki_cost,
+    _wiki_star_cost,
 )
 
 LUA_FIXTURE = '''
@@ -48,6 +49,37 @@ local all_data = {
 }
 '''
 
+# The Regent's second currency lives in the same tables under StarCost. Kept as
+# its own fixture so the Ironclad one above stays a plain no-stars module — the
+# case that must keep coming back with no star_cost key at all.
+REGENT_LUA_FIXTURE = '''
+local all_data = {
+  ["Falling Star"] = {
+    Cost = 0,
+    StarCost = 2,
+    Color = "Regent",
+    Type = "Attack",
+    Rarity = "Basic",
+    Text = "Deal [8|12] damage."
+  },
+  ["Stardust"] = {
+    Cost = 0,
+    StarCost = -1,
+    Color = "Regent",
+    Type = "Attack",
+    Rarity = "Uncommon",
+    Text = "Deal [5|7] damage to a random enemy X times."
+  },
+  ["Bulwark"] = {
+    Cost = 2,
+    Color = "Regent",
+    Type = "Skill",
+    Rarity = "Uncommon",
+    Text = "Gain [12|15] $Block."
+  }
+}
+'''
+
 
 # ── Lua module parsing ──
 
@@ -79,6 +111,19 @@ def test_wiki_cost_separates_the_two_negative_sentinels():
     assert _wiki_cost(2) == "2"
     assert _wiki_cost(None) == "Unplayable"
     assert _wiki_cost("") == "Unplayable"
+
+
+def test_wiki_star_cost_reads_a_missing_field_as_no_cost():
+    """The trap is routing StarCost through _wiki_cost because both use -1 for
+    X. A missing Cost means the card is unplayable; a missing StarCost means it
+    charges no Stars, which is 616 of the 639 cards."""
+    assert _wiki_star_cost(None) == "", "no field is no star cost, not unplayable"
+    assert _wiki_star_cost("") == ""
+    assert _wiki_star_cost(0) == "", "the game draws no orb for a zero star cost"
+    assert _wiki_star_cost(-1) == "X"
+    assert _wiki_star_cost(-2) == "", "there is no unplayable-by-stars"
+    assert _wiki_star_cost(2) == "2"
+    assert _wiki_star_cost(7) == "7"
 
 
 def test_split_wiki_text_alternations_and_icons():
@@ -194,6 +239,21 @@ def test_wikigg_fetch_cards_from_fixture():
     assert by_name["Strike"]["description_upgraded"] == "Deal 9 damage."
     assert by_name["Bloodletting"]["description"] == "Lose 3 HP. Gain 2 Energy."
     assert by_name["Bloodletting"]["cost"] == "0"
+    assert "star_cost" not in by_name["Strike"], "no Ironclad card charges Stars"
+
+
+def test_wikigg_fetch_cards_reads_regent_star_costs():
+    src = WikiggSource()
+    with patch.object(WikiggSource, "_fetch_modules",
+                      return_value={"Module:Cards/StS2 data/Regent": REGENT_LUA_FIXTURE}):
+        cards = src.fetch_cards()
+    by_name = {c["name"]: c for c in cards}
+    # Both currencies, independently: 0 energy and 2 Stars is a real card.
+    assert (by_name["Falling Star"]["cost"], by_name["Falling Star"]["star_cost"]) == ("0", "2")
+    assert by_name["Stardust"]["star_cost"] == "X"
+    # Omitted rather than blank, so an update does not stamp an empty string
+    # onto every card in the game.
+    assert "star_cost" not in by_name["Bulwark"]
 
 
 # ── orchestrator: fallback + provenance (G1 source-kill test) ──
@@ -267,6 +327,27 @@ def test_orchestrator_primary_wins_secondary_fills_gaps(tmp_path, monkeypatch):
     assert by_name["Alpha"]["fetched_from"] == "primary.example"
     assert by_name["Gamma"]["fetched_from"] == "secondary.example"  # gap-filled
     assert by_name["Gamma"]["fetched_at"]  # provenance stamped on new records
+
+
+def test_orchestrator_gap_fills_star_cost_from_the_secondary(tmp_path, monkeypatch):
+    """Star cost is a wiki-only column in all but two cases, so without the
+    field-level gap-fill the primary wins the race on every update and 21 of the
+    23 Regent cards that charge Stars ship blank. The primary having the card —
+    which it always does — is precisely what stops the record-level gap-fill
+    from covering this."""
+    cards = _run_orchestrator(
+        tmp_path, monkeypatch,
+        primary_result=[_card("Falling Star", character="Regent", cost="0"),
+                        _card("Resonance", character="Regent", star_cost="2")],
+        secondary_result=[_card("Falling Star", character="Regent", star_cost="2"),
+                          _card("Resonance", character="Regent", star_cost="9")],
+    )
+    by_name = {c["name"]: c for c in cards}
+    assert by_name["Falling Star"]["star_cost"] == "2", "filled from the secondary"
+    assert by_name["Falling Star"]["description"] == "Falling Star desc", \
+        "gap-filling one field must not hand the record to the secondary"
+    assert by_name["Resonance"]["star_cost"] == "2", \
+        "a primary that has the field still wins it"
 
 
 def test_orchestrator_falls_back_when_primary_dead(tmp_path, monkeypatch):

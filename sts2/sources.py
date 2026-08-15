@@ -86,6 +86,28 @@ def _wiki_cost(value) -> str:
     return "Unplayable" if text.startswith("-") else text
 
 
+def _wiki_star_cost(value) -> str:
+    """The wiki's StarCost field as a star-cost string.
+
+    The Regent's second currency. **A missing field means the card charges no
+    Stars — the exact opposite of `Cost`, where missing means unplayable** — so
+    this cannot be routed through `_wiki_cost`, however similar the two look.
+    Only 23 Regent cards carry the field at all; the other 616 cards in the game
+    would come back "Unplayable" if it were.
+
+    `-1` is the same variable-cost sentinel `Cost` uses, and means the same
+    thing: pay what you like and the card scales. Stardust is the only one —
+    "Deal 5 damage to a random enemy X times", X being the Stars spent. Zero is
+    folded into "" because a star orb reading 0 is not a thing the game draws.
+    """
+    if value is None or value == "":
+        return ""
+    text = str(value)
+    if text == "-1":
+        return "X"
+    return "" if text.startswith("-") or text == "0" else text
+
+
 def _parse_lua_table(content: str) -> dict[str, dict]:
     """Parse the wiki's regular `["Name"] = { Field = value, ... }` tables.
 
@@ -257,7 +279,7 @@ class WikiggSource:
                     f"CARD.{re.sub(r'[^A-Z0-9]+', '_', name.upper()).strip('_')}"
                 )
                 rarity = str(fields.get("Rarity", ""))
-                cards.append({
+                record = {
                     "id": game_id,
                     "name": name,
                     "character": character,
@@ -267,7 +289,15 @@ class WikiggSource:
                     "description": desc,
                     "description_upgraded": _clean_description(upgraded),
                     "keywords": _extract_keywords(desc),
-                })
+                }
+                # Emitted only when there is one. `_merge_with_existing` writes
+                # every key it is given, so always emitting it would stamp
+                # "star_cost": "" onto the 616 records that charge no Stars —
+                # 616 lines of diff on the next update, saying nothing.
+                star_cost = _wiki_star_cost(fields.get("StarCost"))
+                if star_cost:
+                    record["star_cost"] = star_cost
+                cards.append(record)
         return sorted(cards, key=lambda c: (c["character"], c["name"]))
 
     def fetch_relics(self) -> list[dict]:

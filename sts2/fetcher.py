@@ -380,6 +380,24 @@ def _log_field_drift(raw: list[dict], category: str) -> None:
         log.warning("Failed to write %s: %s", _KEYS_BASELINE_FILE, exc)
 
 
+def _gg_star_cost(obj: dict) -> str:
+    """The Regent's star cost out of a slaythespire2.gg card object.
+
+    Two separate encodings: `starCost` for a fixed number, `costsStarX` for the
+    variable one — the star twin of the `costsX` flag this source uses for X
+    energy. Neither key is present on a card that charges no Stars.
+
+    **This source is not authoritative for star cost.** As of 2026-08 it carries
+    it for 2 of the 23 cards that have one (Resonance and Stardust); the wiki's
+    Lua modules have all 23. The gap-fill in `run_fetcher` is what actually
+    populates the rest, so do not read a blank here as "the card has none".
+    """
+    if obj.get("costsStarX"):
+        return "X"
+    value = obj.get("starCost")
+    return str(value) if isinstance(value, int) and value > 0 else ""
+
+
 def _scrape_cards(html: str) -> list[dict]:
     """Parse card data from wiki HTML."""
     raw = _extract_json_objects(html, "CARD")
@@ -433,7 +451,7 @@ def _scrape_cards(html: str) -> list[dict]:
         if _UNRESOLVED_TOKEN_RE.search(desc_upgraded):
             desc_upgraded = ""
 
-        cards.append({
+        record = {
             "id": game_id,
             "name": obj.get("name", ""),
             "character": character,
@@ -443,7 +461,13 @@ def _scrape_cards(html: str) -> list[dict]:
             "description": desc,
             "description_upgraded": desc_upgraded,
             "keywords": keywords,
-        })
+        }
+        # Omitted rather than blank when absent, as in sources.py — see the
+        # note there on why an empty star cost is not worth a line in the file.
+        star_cost = _gg_star_cost(obj)
+        if star_cost:
+            record["star_cost"] = star_cost
+        cards.append(record)
 
     return sorted(cards, key=lambda c: (c["character"], c["name"]))
 
@@ -834,6 +858,13 @@ def run_fetcher(save_only: bool = False):
                         # description.
                         if not r.get("description_upgraded") and sec.get("description_upgraded"):
                             r["description_upgraded"] = sec["description_upgraded"]
+                        # Star cost is a gap-fill in practice, not an edge case:
+                        # the primary carries it for 2 of the 23 Regent cards
+                        # that charge Stars, the wiki for all 23. Without this
+                        # line the field is a wiki-only column that the primary
+                        # silently wins the race for on every single update.
+                        if not r.get("star_cost") and sec.get("star_cost"):
+                            r["star_cost"] = sec["star_cost"]
                     if filled:
                         print(f"    {source.name} filled text for {filled} {label}")
 

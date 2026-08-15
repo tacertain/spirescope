@@ -8,6 +8,12 @@ class Card(BaseModel):
     name_en: str = ""  # English name, kept when a locale overlay renames this entity
     character: str  # Ironclad, Silent, Defect, Necrobinder, Regent, Colorless, Curse, Status
     cost: str  # "0", "1", "2", "3", "X", "Unplayable"
+    # The Regent pays for a card twice: energy, like every other character, and
+    # Stars on top. Optional and defaulted so v1 data files load unchanged, and
+    # absent from cards.json for every card that charges none — which is all but
+    # 23 of them. "" is no star cost; "X" is variable, the same sentinel `cost`
+    # uses. There is no "Unplayable" here: that is a property of `cost` alone.
+    star_cost: str = ""  # "", "1".."7", "X"
     type: str  # Attack, Skill, Power, Status, Curse
     rarity: str  # Starter, Common, Uncommon, Rare, Special
     description: str = ""

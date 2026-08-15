@@ -60,6 +60,18 @@ def main() -> int:
     empty_rarity = [c["id"] for c in records if not str(c.get("rarity", "")).strip()]
     note(f"{len(empty_rarity)} records with an empty rarity (stub records; see DESIGN.md)")
 
+    # Stars are the Regent's currency and no other character's, so a star cost
+    # anywhere else means a source crossed a column, not that the game changed.
+    # The value check catches the other half: `StarCost = -1` arriving as a
+    # literal "-1" in an orb, the mistake `_wiki_cost` already had once.
+    starred = [c for c in records if str(c.get("star_cost", "")).strip()]
+    stray = [c["id"] for c in starred if c.get("character") != "Regent"]
+    check("star costs only on Regent cards", not stray, ", ".join(stray[:5]))
+    bad_star = [f'{c["id"]}={c["star_cost"]}' for c in starred
+                if c["star_cost"] != "X" and not c["star_cost"].isdigit()]
+    check("every star cost is a number or X", not bad_star, ", ".join(bad_star[:5]))
+    note(f"{len(starred)} cards charge Stars")
+
     print("\nknowledge base")
     names = collections.Counter(c.name for c in kb.cards)
     # Strike and Defend legitimately have one id per character.

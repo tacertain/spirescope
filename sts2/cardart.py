@@ -95,6 +95,10 @@ UI_SPRITES = {
 # region in the ui atlas, and the two are not the same artwork.
 UI_TEXTURES = {
     "plaque": "card_portrait_border_plaque2.png",
+    # The Regent's star-cost orb. Not on the ui atlas at all: card.tscn's
+    # StarIcon points straight at res://images/ui/combat/energy_star.png, the
+    # same 256px texture the combat star counter draws.
+    "star": "energy_star.png",
 }
 
 UI_DIRNAME = "ui"
@@ -625,6 +629,11 @@ def sprites_for(card) -> dict:
         "banner_color": _BANNER_BY_RARITY.get(rarity, "common"),
         "unplayable": cost.lower() == "unplayable",
         "cost": "" if cost.lower() == "unplayable" else cost,
+        # Blank for everything that is not one of the 23 Regent cards charging
+        # Stars, and the template draws the second orb only when it is filled.
+        # No per-character variant to choose: the star orb is one sprite, since
+        # only the Regent has the currency.
+        "star_cost": _field(card, "star_cost"),
     }
 
 

@@ -572,6 +572,46 @@ Nothing else needed changing to render it. `cardart.py` keys the orb off
 text, and the energy sprites are per-character orbs with the number drawn
 separately. `models.py` had documented `"X"` as a valid cost all along.
 
+**The Regent pays for cards twice, and `star_cost` is the second price.** Energy
+works as it does for everyone else; 23 Regent cards charge Stars on top, and
+several of them cost **0 energy**, so a tile showing only `cost` presents them as
+free. Stored as a string beside `cost` for the same reason `cost` is one — `X` is
+a value (Stardust: "Deal 5 damage to a random enemy X times", X being the Stars
+you spend). `""` is no star cost, and there is no `Unplayable`: that belongs to
+`cost` alone.
+
+The trap is that `StarCost` and `Cost` share the `-1` = X sentinel and **disagree
+about everything else**. A missing `Cost` means the card cannot be played; a
+missing `StarCost` means it charges no Stars, which is 616 of the 639 cards.
+`_wiki_star_cost` is a separate function for exactly that reason — **do not
+route one through the other**.
+
+The field is **omitted rather than blank** in `cards.json`, since
+`_merge_with_existing` writes every key it is handed and always emitting it would
+put `"star_cost": ""` on 616 records for no information.
+
+**The primary source cannot be trusted for it.** slaythespire2.gg has `starCost`
+(and `costsStarX` for the variable one) on 2 of the 23 — Resonance and Stardust;
+the wiki's Lua modules have all 23. So star cost is carried by the **field-level
+gap-fill** in `run_fetcher`, not by the record-level one: the primary always has
+the card, so the "entities earlier sources don't know" path never fires for it.
+Drop that line and 21 cards silently blank on the next update. `health_check.py`
+asserts star costs appear only on Regent cards and are a number or `X`, which is
+what catches a source crossing a column or the `-1` leaking through as a literal.
+
+Rendering needed one new sprite. `card.tscn` has a `StarIcon`/`StarLabel` pair
+alongside the energy orb, pointing at `images/ui/combat/energy_star.png` — a
+standalone texture, not an ui-atlas region, so it goes in `UI_TEXTURES` rather
+than `UI_SPRITES`. Its geometry is measured against the same 300x422 card as
+everything else in `style.css`: 58x58 at (-36, 22), against the energy orb's
+64x64 at (-16, -16). Unlike `.gc-cost`, `.gc-star-cost` takes the scene's own
+colours — cream on a teal outline — because `EnergyLabel`'s pure green is a
+state the game recolours, while `StarLabel`'s cream is the resting card.
+
+The tag class is `tag-star-cost`, not `tag-star`: the latter is a prefix of the
+`tag-starter` rarity tag. No CSS selector confuses the two, but a `grep` does,
+and so did the first test written against it.
+
 **19 cards have an empty `rarity`** and are stub records: 16 have no
 description, 18 no art, all defaulting to `type: Skill`, `cost: Unplayable`,
 `character: Colorless` — demonstrably wrong, since Star Blast uses the Regent's

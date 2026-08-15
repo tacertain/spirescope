@@ -240,6 +240,22 @@ async def test_search_suggestions_shown(client):
     assert "No results" in resp.text or "Did you mean" in resp.text
 
 
+async def test_card_detail_shows_both_of_the_regents_costs(client):
+    """Falling Star costs 0 energy and 2 Stars. A page showing only the energy
+    reads as a free card, which is the opposite of what it is — so the second
+    cost has to survive from cards.json through the model to the template."""
+    resp = await client.get("/cards/CARD.FALLING_STAR")
+    assert resp.status_code == 200
+    assert "tag-star-cost" in resp.text
+    assert "&#9733;2" in resp.text
+
+
+async def test_card_detail_omits_the_star_tag_when_there_is_no_star_cost(client):
+    resp = await client.get("/cards/CARD.BASH")
+    assert resp.status_code == 200
+    assert "tag-star-cost" not in resp.text
+
+
 async def test_card_detail_404(client):
     resp = await client.get("/cards/CARD.NONEXISTENT")
     assert resp.status_code == 404

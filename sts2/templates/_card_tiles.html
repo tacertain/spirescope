@@ -31,8 +31,15 @@
     {% if not sp.unplayable %}
     <img src="/cardart/ui/{{ sp.energy }}.png" alt="" class="gc-energy" loading="lazy">
     {% endif %}
+    {# The Regent's second currency, drawn as its own orb below and left of the
+       energy one — where card.tscn's StarIcon puts it. A card with no star cost
+       gets no orb, which is how the game distinguishes them. #}
+    {% if sp.star_cost %}
+    <img src="/cardart/ui/star.png" alt="" class="gc-star" loading="lazy">
+    {% endif %}
     <p class="gc-title">{{ card.name }}</p>
     {% if sp.cost %}<p class="gc-cost">{{ sp.cost }}</p>{% endif %}
+    {% if sp.star_cost %}<p class="gc-star-cost">{{ sp.star_cost }}</p>{% endif %}
     <p class="gc-type">{{ card.type }}</p>
     <p class="gc-text">{% for line in card_rules(card) %}<span class="gc-line">{% for run, kw in line %}{% if kw %}<span class="gc-kw">{{ run }}</span>{% else %}{{ run }}{% endif %}{% endfor %}</span>{% endfor %}</p>
   </div>
@@ -67,6 +74,9 @@
   <h3>
     <span class="char-{{ card.character|lower }}">{{ card.name }}</span>
     <span class="tag tag-cost">{{ card.cost }}</span>
+    {# Two costs, two tags. Folding them into one string ("0 + 2*") would make
+       the cost column unsortable and read as arithmetic on a single currency. #}
+    {% if card.star_cost %}<span class="tag tag-star-cost" title="Star cost">&#9733;{{ card.star_cost }}</span>{% endif %}
   </h3>
   <p>
     <span class="tag tag-{{ card.type|lower }}">{{ card.type }}</span>

@@ -4,6 +4,17 @@
 
 ### Added
 
+- **Regent cards show their star cost.** The Regent pays for a card twice —
+  energy, like every other character, and Stars on top — and 23 of its cards
+  charge Stars, several of them for **0 energy**. Those read as free cards until
+  now. Star cost gets its own field beside `cost`, its own orb on the card art
+  (the game's own `StarIcon` sprite and geometry, second currency drawn where
+  the game draws it), and its own tag everywhere a cost tag already appeared.
+  Variable star costs render `X`, so Stardust — "Deal 5 damage to a random enemy
+  X times" — finally says what X is. The wiki is the only source that has all 23
+  (the primary carries 2), so the value arrives through the fetcher's
+  field-level gap-fill; `health_check.py` asserts star costs stay on Regent
+  cards and stay numeric.
 - **Card statistics can be scoped to an ascension range.** Two dropdowns on
   `/cards`, defaulting to the full 0–10 span, narrow the Held and Final figures
   to runs in that range. It scopes the numbers, not the listing — the same
