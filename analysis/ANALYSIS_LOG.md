@@ -45,8 +45,18 @@ Bayes over a 1-D grid.
 **Useful?** Yes, as a negative result and a correction. It shows the app's
 existing win-rate sort is measuring rarity, which is worth knowing. It does not
 produce a defensible ranking. A ranking can be *manufactured* by fixing τ by
-hand (τ = 0.35 gives a bounded ordering, nothing above 83% confidence) — that is
-an assertion the data does not support, and must be labelled as such.
+hand — that is an assertion the data does not support, and must be labelled as
+such.
+
+**What τ = 0.35 actually claims.** τ is the standard deviation of the per-card
+effect on the **log-odds** scale, so under `Normal(0, τ²)` about two thirds of
+cards fall within ±1 τ. At the model's 28.4% base that is **−6.6 to +7.6
+percentage points** of win rate. The asymmetry is not a rounding artifact: a
+fixed log-odds shift buys more probability upward than it costs downward at a
+base below 50%. The write-up rounds this to "about ±8 points", which overstates
+the downside — prefer the signed figures. τ = 0.6 would claim −10.5 / +13.6,
+which is not defensible for a single card. Nothing about 0.35 is derived; it is
+the smallest assertion that still produces a visible ordering.
 
 **Correction, 2026-08-17.** The originally reported δ = +1.81 and γ = −0.62 were
 **wrong**. They came from a hand-rolled gradient ascent that had not converged
@@ -175,6 +185,31 @@ screens and 835 rest choices are not. **Choose the unit first.**
 The second lesson is that the comparison group is where the errors live. Three
 separate findings in this log were overturned or downgraded by fixing the
 control group, not by collecting more data.
+
+---
+
+## Judgement calls, flagged as such
+
+Everything above this line is a measurement. These are not — they are opinions
+formed while doing the work, and a new reader should feel free to overturn them
+without needing new data.
+
+- **The next-steps ordering is a guess.** Particularly potions at #3. That rests
+  on a hunch that unused potions at death is a common player error and therefore
+  a large effect. Nothing here measured it; `potions_used` has never been
+  touched. If it turns out flat, the ranking was wrong, not the data.
+- **τ = 0.35 was chosen, not derived** (see above). A different analyst could
+  justify 0.2 or 0.5 as easily.
+- **Controlling for depth rather than leaving it out** is a choice between two
+  biases, taken deliberately toward the conservative one. Someone arguing the
+  other way — that the artifact is smaller than the clamped signal — would not
+  be obviously wrong, and would get a different card ranking.
+- **`.venv` now carries numpy, scipy, pandas and statsmodels (~100 MB)** for
+  analysis the shipped app never runs. Deliberate, and isolated from the
+  distributable, but it is a cost someone else might weigh differently.
+- **Excluding starters from card rankings** is right for the ranking question
+  and wrong for others: they are the only cards with full-sample coverage, so
+  anything about *deck composition* rather than card choice should keep them.
 
 ---
 

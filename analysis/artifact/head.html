@@ -1,3 +1,16 @@
 <title>Does a Card's Win Rate Mean Anything?</title>
 <style>
+/* Kreon is inlined as a base64 data URI, and must stay that way. The Artifact
+   CSP blocks every external host, so a linked webfont — CDN or self-hosted —
+   does not merely 404, it fails SILENTLY to the Georgia fallback. Nothing
+   errors; the page just renders in the wrong face, and since the whole type
+   scale and the figure's column widths were set against Kreon's metrics, the
+   layout shifts with no indication why.
+
+   The bytes are the repo's own sts2/static/fonts/kreon-latin.woff2 (SIL OFL,
+   attributed in THIRD_PARTY_NOTICES.md) — the face Slay the Spire 2 itself sets
+   card text in. This file deliberately ends mid-declaration: the build in
+   ANALYSIS_LOG.md concatenates head + base64 + body, and `printf '%s'` strips
+   the trailing newline, because a newline inside a CSS url() is a parse error.
+   Do not add one. */
 @font-face{font-family:'Kreon';font-style:normal;font-weight:400 700;font-display:swap;src:url(data:font/woff2;base64,
