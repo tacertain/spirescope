@@ -167,6 +167,13 @@ disjoint — act-1 and act-2 elites co-occur constantly, because a run passes
 through every act, and a first version of this check failed on 45 perfectly
 legitimate pairs for exactly that reason.
 
+**3c. `map_point_history` is already split by act.** It is a list of acts, each
+a list of floors, so act 1 is `d["map_point_history"][0]` — no floor-range guess
+needed, and "did the run complete act 1" is just `len(acts) > 1`. Earlier work
+inferred act boundaries from floor numbers, which is both fragile and
+unnecessary. `flat_floors()` deliberately flattens this away; go back to the raw
+structure when the act boundary matters.
+
 **4. The unit of analysis decides whether you have any power.** Approximate
 counts in the current history:
 

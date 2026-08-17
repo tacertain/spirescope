@@ -222,9 +222,33 @@ do. Zero shared runs across the boundary, against 12–38 within each.
   Mann-Whitney on position gives p = 0.486. Ascension (3.67 vs 3.89) and
   character mix are close.
 - **There is a mechanism.** Overgrowth's elites are about three times deadlier
-  per fight (9.3% vs 3.3%, Fisher p = 0.053), and Overgrowth runs consequently
-  fight fewer act-1 elites (1.39 vs 1.95 per run) — fewer elites means fewer
-  rewards, compounding into the rest of the run.
+  per fight (9.3% vs 3.3%, Fisher p = 0.053), and Overgrowth runs fight fewer
+  act-1 elites: **1.39 vs 1.95** per run.
+- **The elite-count gap is not survivorship.** The obvious objection is that
+  Overgrowth runs simply die before getting the chance. They do not: among runs
+  that **completed act 1**, the gap is **2.01 vs 1.42** (Mann-Whitney
+  p = 0.0006), essentially identical to the unconditioned +0.56 and if anything
+  slightly wider. So it is either structural — fewer elite nodes on those maps —
+  or behavioural, routing around elites known to be dangerous. Distinguishing
+  the two needs map topology (next step 5).
+- **Most of the advantage is realised in act 1.** Overgrowth loses **35.7%** of
+  runs before the act-1 boss against Underdocks' **11.5%** (Fisher p = 0.001) —
+  a 24-point survival gap, larger than the 15.9-point gap in final win rate.
+  Among runs that clear act 1 the remaining difference is +9.5 points and no
+  longer resolvable (40.6% vs 31.1%, p = 0.328).
+
+  Treat that decomposition as descriptive only. "Completed act 1" is a
+  post-treatment variable, so conditioning on it forfeits the randomisation and
+  can induce collider bias; and the surviving sample is smaller, so the loss of
+  significance is partly lost power rather than a vanished effect. It locates
+  where the effect happens; it does not measure a residual.
+
+**A tempting association to not act on.** Among act-1 survivors, act-1 elites
+fought tracks win rate hard: 0 elites → 0/11 won, 1 → 35.5%, 2+ → 43.1%. This is
+almost certainly confounded in the usual direction — you route into elites when
+your deck is already strong, so the arrow plausibly runs backwards. It is the
+same shape as the card rarity artifact in section 1. Do not read it as "fight
+more elites".
 
 **The variant is assigned randomly by the seed** (confirmed by Andrew, 2026-08-17).
 That changes the status of this result completely. It is not an association that
@@ -313,9 +337,15 @@ Roughly in order of expected value.
    artifact that motivated this whole exercise. Fixing it will not change τ = 0,
    which is the point: it is cheap insurance for every future analysis rather
    than a way to rescue this one.
-5. **Path choice: taking versus skipping elites.** Requires reconstructing the
-   map from `map_point_history`; check whether the branch structure is
-   recoverable before committing.
+5. **Path choice: taking versus skipping elites.** Now the most interesting open
+   question, not just a nice-to-have. Overgrowth runs fight 1.42 act-1 elites to
+   Underdocks' 2.01 *among runs that completed act 1*, so the gap is not
+   survivorship — it is either fewer elite nodes on those maps or a decision to
+   avoid them. Those have opposite implications: structural means the variant is
+   simply poorer, behavioural means the avoidance may be an error worth
+   correcting. Distinguishing them needs the map's branch structure; check
+   whether `map_point_history` preserves offered-but-not-taken nodes before
+   committing, since it may only record the path actually walked.
 6. **Fix the app's card sort.** Independent of any new analysis: the current
    Win Rate order is a rarity ranking. `_sort_key_winrate` in `sts2/routes.py`
    keys off raw held win rate with sample size only as a tiebreak — a 2/2
