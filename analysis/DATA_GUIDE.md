@@ -174,6 +174,16 @@ inferred act boundaries from floor numbers, which is both fragile and
 unnecessary. `flat_floors()` deliberately flattens this away; go back to the raw
 structure when the act boundary matters.
 
+**3d. There is no map, only a path.** `map_point_history` is a *history*: across
+all 4,796 floors its dicts carry exactly three keys — `map_point_type`,
+`player_stats`, `rooms` — with no connectivity, coordinates or visited flag, and
+every floor has `player_stats`, which an unvisited node could not. **Nothing
+records what the map offered but the player declined.** Any question of the form
+"should they have taken X instead of Y" is therefore unanswerable from saves,
+and the game archive does not rescue it: map generation is C# and every relevant
+file is stripped to 1 byte. Check this before designing a route-choice analysis
+— it kills a whole family of otherwise reasonable questions.
+
 **4. The unit of analysis decides whether you have any power.** Approximate
 counts in the current history:
 

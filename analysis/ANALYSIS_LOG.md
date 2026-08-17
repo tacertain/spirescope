@@ -284,6 +284,45 @@ replication as the history grows.
 
 ---
 
+## Blocked: why the elite-avoidance question cannot be answered
+
+Overgrowth runs fight 1.42 act-1 elites to Underdocks' 2.01, and that gap is not
+survivorship (section 5). So it is one of two things, with opposite
+implications:
+
+- **Structural** — fewer elite nodes on Overgrowth maps. The variant is simply
+  poorer and there is nothing to change.
+- **Behavioural** — routing around elites known to be dangerous. The avoidance
+  may itself be the mistake, since skipping elites forfeits their rewards.
+
+Separating them needs to know what the map *offered*, not just what was walked.
+Both available sources have been checked and neither has it.
+
+**The saves record only the walked path.** Across all 4,796 floors,
+`map_point_history` floor dicts have exactly three keys — `map_point_type`,
+`player_stats`, `rooms`. No connectivity, no coordinates, no visited flag, and
+every floor carries `player_stats`, which an unvisited node could not. Act 1
+reads as a linear 17-step walk from Neow to boss. It is a history, not a map.
+
+**The game archive does not have the generator either.** Map generation is
+entirely C#, and every relevant file is stripped to 1 byte in the `.pck`:
+`Map/StandardActMap.cs`, `Map/MapPointTypeCounts.cs` — precisely the one that
+would define how many elite nodes an act gets — `Map/MapPostProcessing.cs`,
+`Map/MapPathPruning.cs`, `Map/GoldenPathActMap.cs`. No `.tres` carries the
+parameters; the only non-code act data in the archive is five localisation
+titles.
+
+**Two routes remain, neither of them analysis.** Ask the player, who knows
+whether they deliberately avoid Overgrowth elites — twice already in this
+project a piece of game knowledge has settled something the data could not.
+Or decompile the shipped .NET assembly, which is a different kind of
+undertaking and out of scope here.
+
+Until then the mechanism behind the largest effect in this project is
+**undetermined**, and the log should not imply otherwise.
+
+---
+
 ## Judgement calls, flagged as such
 
 Everything above this line is a measurement. These are not — they are opinions
@@ -337,15 +376,8 @@ Roughly in order of expected value.
    artifact that motivated this whole exercise. Fixing it will not change τ = 0,
    which is the point: it is cheap insurance for every future analysis rather
    than a way to rescue this one.
-5. **Path choice: taking versus skipping elites.** Now the most interesting open
-   question, not just a nice-to-have. Overgrowth runs fight 1.42 act-1 elites to
-   Underdocks' 2.01 *among runs that completed act 1*, so the gap is not
-   survivorship — it is either fewer elite nodes on those maps or a decision to
-   avoid them. Those have opposite implications: structural means the variant is
-   simply poorer, behavioural means the avoidance may be an error worth
-   correcting. Distinguishing them needs the map's branch structure; check
-   whether `map_point_history` preserves offered-but-not-taken nodes before
-   committing, since it may only record the path actually walked.
+5. **Path choice: taking versus skipping elites — BLOCKED, see below.** The
+   question is live and interesting; the data to answer it does not exist.
 6. **Fix the app's card sort.** Independent of any new analysis: the current
    Win Rate order is a rarity ranking. `_sort_key_winrate` in `sts2/routes.py`
    keys off raw held win rate with sample size only as a tiebreak — a 2/2
