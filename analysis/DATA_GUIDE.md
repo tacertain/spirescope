@@ -52,6 +52,18 @@ logic, both of which have subtleties.
 not on the floor dict. Guessing that one wrong yields 471 rows with blank names
 and no error.
 
+**Never join parsed and raw by list position.** `saves.get_run_history()`
+returns runs **newest first**; `raw_runs()` returns them **oldest first**. They
+are exact reverses, so `zip(parsed, raw_runs())` pairs the first run with the
+last — for all 148 runs, and silently. Verified: joining by position gives
+0/148 matching seeds; joining by id gives 148/148. Use `raw_by_id()`, keyed on
+`RunHistory.id`, which is the `.run` filename stem and unique. `seed` works too.
+
+**Floors are numbered by position.** `RunFloor.floor` equals the 1-based index
+into the flattened `map_point_history`, verified on all 148 runs and re-checked
+by `verify_assumptions()`. `hazard_bands` and `elite_encounters` both rely on
+it, so if that check ever fails their floor numbers are wrong.
+
 ## Data hygiene, already checked
 
 - **3 of 148 runs have `was_abandoned` set.** A quit is not a loss. Excluding

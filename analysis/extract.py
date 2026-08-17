@@ -15,6 +15,7 @@ from __future__ import annotations
 import collections
 import glob
 import json
+import os
 import statistics
 
 from sts2.config import SAVE_DIR
@@ -23,9 +24,35 @@ from sts2.config import SAVE_DIR
 # two-player run is taken from player 0's perspective like the rest.
 _PLAYER = 0
 
+# Elites are drawn from a per-act pool, and comparing across pools measures act
+# difficulty rather than elite difficulty — the error that cost two rounds of
+# analysis (DATA_GUIDE.md pitfall 3). These are the pools observed so far,
+# grouped by where their floor distributions actually coincide. Re-derive rather
+# than trust if the game adds elites: group by median floor, then check
+# `balance(rows, "enc", ["floor"])` comes back near 1.
+ELITE_POOLS = {
+    "act1": ["ENCOUNTER.TERROR_EEL_ELITE",                # all floors 7-15
+             "ENCOUNTER.PHANTASMAL_GARDENERS_ELITE",
+             "ENCOUNTER.SKULKING_COLONY_ELITE",
+             "ENCOUNTER.PHROG_PARASITE_ELITE",
+             "ENCOUNTER.BYGONE_EFFIGY_ELITE",
+             "ENCOUNTER.BYRDONIS_ELITE"],
+    "act2": ["ENCOUNTER.DECIMILLIPEDE_ELITE",             # floors 24-33
+             "ENCOUNTER.ENTOMANCER_ELITE",
+             "ENCOUNTER.INFESTED_PRISMS_ELITE"],
+    "act3": ["ENCOUNTER.KNIGHTS_ELITE",                   # floors 40-47
+             "ENCOUNTER.MECHA_KNIGHT_ELITE",
+             "ENCOUNTER.SOUL_NEXUS_ELITE"],
+}
+
 
 def raw_runs(skip_abandoned: bool = False) -> list[dict]:
-    """Every run file as a dict, newest last.
+    """Every run file as a dict, **oldest first**.
+
+    NOTE the order. `saves.get_run_history()` returns runs **newest first**, so
+    the two lists are exact reverses of each other. `zip(parsed, raw_runs())`
+    pairs the first run with the last and produces confident nonsense. Use
+    `raw_by_id()` to join instead.
 
     `was_abandoned` marks a run quit rather than lost — 3 of 148. Excluding them
     does not move any published figure, but a quit is not a death, so any new
@@ -36,7 +63,23 @@ def raw_runs(skip_abandoned: bool = False) -> list[dict]:
         d = json.load(open(fn, encoding="utf-8"))
         if skip_abandoned and d.get("was_abandoned"):
             continue
-        out.append(d)
+        out.append((os.path.basename(fn)[:-len(".run")], d))
+    return [d for _, d in out]
+
+
+def raw_by_id(skip_abandoned: bool = False) -> dict[str, dict]:
+    """{RunHistory.id: raw run dict} — the safe way to join parsed against raw.
+
+    `RunHistory.id` is the `.run` filename stem, unique across all 148 runs.
+    Joining on it (or on `seed`) is correct; joining on list position is not,
+    because the two sources are ordered oppositely.
+    """
+    out = {}
+    for fn in sorted(glob.glob(str(SAVE_DIR / "history" / "*.run"))):
+        d = json.load(open(fn, encoding="utf-8"))
+        if skip_abandoned and d.get("was_abandoned"):
+            continue
+        out[os.path.basename(fn)[:-len(".run")]] = d
     return out
 
 
@@ -218,6 +261,23 @@ def verify_assumptions() -> list[tuple[str, bool, str]]:
     total = len(elite_encounters())
     out.append(("elite encounters resolve a name", named == total and total > 0,
                 f"{named}/{total} via rooms[0]['model_id']"))
+
+    # Everything here numbers floors by position in the flattened history, so
+    # this identity is load-bearing for hazard_bands and elite_encounters.
+    raw = raw_by_id()
+    bad_idx = joined = 0
+    for r in runs:
+        d = raw.get(r.id)
+        if d is None:
+            continue
+        joined += 1
+        fl = flat_floors(d)
+        if len(fl) != len(r.floors) or any(pf.floor != i + 1
+                                           for i, pf in enumerate(r.floors)):
+            bad_idx += 1
+    out.append(("RunFloor.floor == 1-based index into flat_floors",
+                bad_idx == 0 and joined == len(runs),
+                f"{joined - bad_idx}/{len(runs)} runs agree"))
 
     # Informational, not a check: one multiplayer run is a known and accepted
     # condition, and a check that always fails is a check people stop reading.
