@@ -154,6 +154,80 @@ def hazard_bands(bands=((1, 5), (6, 10), (11, 15), (16, 20), (21, 25), (26, 30),
     return out
 
 
+def card_offers(skip_abandoned: bool = False) -> list[dict]:
+    """One row per card shown on a reward screen — the offer-as-instrument data.
+
+    Shop screens are excluded from both sides: buying does not set was_picked
+    (8 of 2063 do), so any pick rate including them is wrong. Event grants are
+    unrecoverable and absent entirely.
+
+    The offer is the one genuinely randomised event in a run, which is what
+    makes this the only clean causal handle available — and compliance is ~19%,
+    which is what makes it underpowered anyway. See ANALYSIS_LOG.md section 2.
+    """
+    rows = []
+    for d in raw_runs(skip_abandoned):
+        win = bool(d.get("win"))
+        seed = d.get("seed", "")
+        for t, ps, _room in flat_floors(d):
+            if t == "shop":
+                continue
+            choices = ps.get("card_choices") or []
+            for cc in choices:
+                cid = (cc.get("card") or {}).get("id", "")
+                if not cid:
+                    continue
+                rows.append(dict(card=cid, run=seed, won=win,
+                                 taken=bool(cc.get("was_picked")),
+                                 asc=d.get("ascension", 0)))
+    return rows
+
+
+def verify_assumptions() -> list[tuple[str, bool, str]]:
+    """Re-check the data-shape claims DATA_GUIDE.md relies on.
+
+    These are properties of the save format, not of the analysis, so a game
+    patch can falsify them silently and every downstream number would still
+    look plausible. Run this after upgrading the game. Same spirit as
+    scripts/health_check.py.
+    """
+    from sts2 import saves
+
+    out = []
+    runs = saves.get_run_history()
+
+    bad = [r.id for r in runs if not set(r.deck) <= set(r.held)]
+    out.append(("held is a superset of deck", not bad,
+                f"{len(bad)} runs violate it" if bad else f"all {len(runs)} runs"))
+
+    pre = post = 0
+    for d in raw_runs():
+        fl = flat_floors(d)
+        for i, (t, ps, _r) in enumerate(fl):
+            if t != "rest_site" or not ps.get("hp_healed") or not i:
+                continue
+            prev = fl[i - 1][1]
+            if not prev.get("max_hp"):
+                continue
+            pre += ps["current_hp"] == prev["current_hp"]
+            post += ps["current_hp"] == prev["current_hp"] + ps["hp_healed"]
+    out.append(("rest-site current_hp is post-heal", pre == 0 and post > 0,
+                f"{post} post-heal, {pre} pre-heal"))
+
+    named = sum(1 for r in elite_encounters() if r["enc"])
+    total = len(elite_encounters())
+    out.append(("elite encounters resolve a name", named == total and total > 0,
+                f"{named}/{total} via rooms[0]['model_id']"))
+
+    # Informational, not a check: one multiplayer run is a known and accepted
+    # condition, and a check that always fails is a check people stop reading.
+    multi = sum(1 for d in raw_runs() if len(d.get("players") or []) > 1)
+    out.append((f"note: {multi} multiplayer run(s), extractions use player 0",
+                True, "revisit if this grows"))
+
+    return out
+
+
 def balance(rows: list[dict], group_key: str, covariates: list[str]) -> dict:
     """One-way ANOVA F per covariate across groups.
 

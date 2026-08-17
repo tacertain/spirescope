@@ -103,11 +103,21 @@ analysis. They are **not** in `pyproject.toml` and must not be added — the app
 does not depend on them, and `build.py` builds the distributable from a separate
 clean `.venv_build`, so the shipped binary is unaffected. Same status as Pillow.
 
-**Do not hand-roll the statistics.** This was tried and it was wrong in the
-direction that flatters findings: a hand-written two-proportion z-test returned
-p = 0.002 where Fisher's exact gives p = 0.0056, on exactly the cell counts
-where the approximation was load-bearing. Use `scipy.stats.fisher_exact`,
-`statsmodels.api.Logit`, and a likelihood-ratio test for interactions.
+**Do not hand-roll the statistics.** Two published numbers were wrong because of
+this, in different ways:
+
+- A hand-written two-proportion z-test returned p = 0.002 where Fisher's exact
+  gives p = 0.0056 — anti-conservative on exactly the cell counts where the
+  approximation was load-bearing.
+- A hand-rolled gradient ascent reported a depth coefficient of +1.81. It had
+  not converged and carried a stray ridge penalty; the MLE is **+3.21**, at a
+  log-likelihood of −71.78 against the hand-rolled fit's −74.94. Nothing looked
+  wrong — the estimate was stable, plausible, and reproducible.
+
+Use `scipy.stats.fisher_exact`, `statsmodels.api.Logit`, and a
+likelihood-ratio test for interactions. If you must roll your own, **compare
+log-likelihoods against a reference implementation** — a converged fit is the
+one with the higher likelihood, and that is the only cheap way to tell.
 
 ## Pitfalls
 
@@ -144,8 +154,8 @@ counts in the current history:
 | last-rest-before-a-fight decisions | 581 |
 | rest-site choices | 835 |
 | ordinary monster fights | 1,303 |
-| reward screens (shops excluded) | 2,206 |
-| individual card offers | 6,893 |
+| reward screens (shops excluded) | 2,227 |
+| individual card offers | 6,970 |
 
 Run-level questions are underpowered and will stay that way. Decision-level
 questions start with 4–45× the sample **and** measure the outcome at the

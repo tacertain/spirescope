@@ -5,24 +5,24 @@ using one player's run history. It goes three ways, and the third is the
 interesting one:
 
 1. The obvious statistic is measuring something else entirely — mostly rarity.
-2. Fix that, and 146 runs contain no detectable card signal at all.
+2. Fix that, and 148 runs contain no detectable card signal at all.
 3. The cleaner design you'd reach for next is *worse*, not better. Which is a
    hint that the question was the wrong shape to begin with.
 
-The data is 146 completed runs, 42 of them wins (28.8%), read out of the game's
+The data is 148 completed runs, 42 of them wins (28.4%), read out of the game's
 own save files. Per character:
 
 | character | wins / runs | win rate |
 |---|---|---|
 | Defect | 8 / 46 | 17.4% |
 | Necrobinder | 9 / 31 | 29.0% |
-| Ironclad | 8 / 29 | 27.6% |
+| Ironclad | 8 / 31 | 25.8% |
 | Silent | 9 / 21 | 42.9% |
 | Regent | 8 / 19 | 42.1% |
 
 Worth pausing on that table, because it sets the scale for everything below.
 It looks like a 25-point spread between best and worst character. It isn't
-established: χ² = 6.61 on 4 degrees of freedom, p = 0.16. At this sample size
+established: χ² = 6.77 on 4 degrees of freedom, p = 0.15. At this sample size
 even a gap that large is consistent with luck. Hold that thought.
 
 For each card we know how many runs held it at any point, and how many of those
@@ -35,16 +35,16 @@ Group cards by how many runs held them, and pool the win rates:
 
 | runs holding the card | pooled win rate |
 |---|---|
-| 1–2 | 42.3% |
-| 3–5 | 36.6% |
-| 6–10 | 37.0% |
-| 11+ | 28.4% |
-| **base rate** | **28.8%** |
+| 1–2 | 41.8% |
+| 3–5 | 35.8% |
+| 6–10 | 36.8% |
+| 11+ | 28.0% |
+| **base rate** | **28.4%** |
 
 Cards you've barely seen win 42% of the time. Cards you see constantly win 28%.
 That is not a fact about card quality. It's a fact about run length:
 
-> Winning runs held **22.9** distinct cards on average. Losing runs held **17.8**.
+> Winning runs held **22.9** distinct cards on average. Losing runs held **17.9**.
 
 If you die on floor 6 you saw a dozen cards. If you win you saw thirty-odd. So
 *any* card you have to survive to acquire is over-represented in winning runs,
@@ -71,8 +71,8 @@ logit P(win) = intercept + character
              + δ · log(cards held)
 ```
 
-Fitted on the 146 runs, this gives **δ = +1.81** per log-card and
-**γ = −0.62** per ten ascension levels. The deck-size term is doing enormous
+Fitted on the 148 runs, this gives **δ = +3.21** per log-card and
+**γ = −1.26** per ten ascension levels. The deck-size term is doing enormous
 work, which is another way of saying the bias above is real and big.
 
 Now each run has a predicted win probability that already accounts for who was
@@ -82,12 +82,14 @@ as observed wins over expected wins:
 
 | runs holding the card | observed / expected |
 |---|---|
-| 1–2 | 1.03 |
-| 3–5 | 1.05 |
-| 6–10 | 1.04 |
-| 11+ | 0.99 |
+| 1–2 | 0.89 |
+| 3–5 | 0.95 |
+| 6–10 | 0.99 |
+| 11+ | 1.05 |
 
-Flat. The rarity gradient is gone.
+The rarity gradient is gone — slightly over-corrected, in fact, which is a hint
+that a straight line in log-depth is not quite the right shape. What matters is
+that the 1.47-to-0.99 slide has been removed rather than merely dented.
 
 ## The bind
 
@@ -118,7 +120,7 @@ actually observed:
 | Regent | 22 | 0.109 | 0.189 | 0.000 |
 | Defect | 58 | 0.124 | 0.133 | 0.000 |
 | Necrobinder | 39 | 0.192 | 0.171 | 0.089 |
-| Ironclad | 30 | 0.181 | 0.168 | 0.066 |
+| Ironclad | 36 | 0.174 | 0.167 | 0.049 |
 | Silent | 21 | 0.098 | 0.176 | 0.000 |
 
 Three of five characters show *less* spread than pure noise predicts. Two show a
@@ -140,12 +142,12 @@ the data say *not much*.
 **It says τ = 0.** Every card's estimated effect collapses to ±0.001 log-odds.
 The chance any given card "helps" lands between 28% and 32%, where 50% means no
 evidence either way. The model is not broken; it is reporting that after removing
-the survivorship artifact, 146 runs contain no distinguishable card signal.
+the survivorship artifact, 148 runs contain no distinguishable card signal.
 
 For scale: pinning one card's effect to ±0.25 log-odds needs about **61 runs that
 held that card**, and +0.5 log-odds is already a *large* effect — the difference
 between a 31% and a 43% win rate, from one card. The largest non-starter sample
-here is 66 runs, and the card is Ascender's Bane, the curse you get for playing
+here is 68 runs, and the card is Ascender's Bane, the curse you get for playing
 at high ascension.
 
 ## What were we actually asking?
@@ -182,8 +184,8 @@ needs. Comparing runs where a card was offered against runs where it wasn't
 estimates it against the distribution of what you'd otherwise have been shown.
 The flaw is the estimand.
 
-There's plenty of it, too: 2,206 usable reward screens across the 146 runs,
-6,893 card offers, 451 distinct cards — about 47 offers per run.
+There's plenty of it, too: 2,227 usable reward screens across the 148 runs,
+6,970 card offers, 451 distinct cards — about 47 offers per run.
 
 ## Clean, and worse
 
@@ -211,7 +213,7 @@ constraint.
 
 One number per card assumes a card has one value. It doesn't. Feed is strong in
 a deck that can already kill and dead weight in one that can't. The honest
-quantity is an interaction between the card and the deck it lands in — and 146
+quantity is an interaction between the card and the deck it lands in — and 148
 runs cannot support main effects, let alone interactions.
 
 ## So can you rank cards at all?
@@ -225,12 +227,12 @@ cards land within about ±8 points of win rate — gives a bounded, data-driven
 ordering where nothing overstates itself:
 
 ```
-Feed             +0.32   chance it helps: 83%   (8 runs,  Rare)
-Time's Up        +0.29                    81%   (8 runs,  Rare)
-Infinite Blades  +0.28                    81%   (11 runs, Uncommon)
+Feed             +0.29   chance it helps: 81%   (8 runs,  Rare)
+Bully            +0.28                    80%   (8 runs,  Uncommon)
+Time's Up        +0.25                    77%   (8 runs,  Rare)
 ...
-Leap             −0.26                    16%   (30 runs, Common)
-TURBO            −0.32                    15%   (11 runs, Common)
+Inflame          −0.28                    18%   (9 runs,  Uncommon)
+Pommel Strike    −0.29                    17%   (8 runs,  Common)
 ```
 
 Every number is a shrunk estimate; the ordering is a weak prior, not a verdict.
@@ -264,16 +266,16 @@ survivorship.
 
 The useful one is about sample size, and it's more humbling than it first looks.
 Card identity explains nothing detectable here. But neither does character: that
-25-point spread in the opening table doesn't clear the noise bar either. At 146
+25-point spread in the opening table doesn't clear the noise bar either. At 148
 runs the only thing that clearly separates winning from losing is how far the run
 got — which is very nearly a restatement of winning.
 
-That suggests the run is the wrong unit of analysis. There are 146 of them, but
-there are 2,206 reward screens and 6,893 card offers underneath. Questions posed
+That suggests the run is the wrong unit of analysis. There are 148 of them, but
+there are 2,227 reward screens and 6,970 card offers underneath. Questions posed
 at the level of the decision rather than the run start with fifteen to forty
 times the sample: where runs actually die, what the deck looked like going into
 the fight that ended it, whether a choice predicts surviving the next five floors
-rather than the whole run. That's where 146 runs still has something to say.
+rather than the whole run. That's where 148 runs still has something to say.
 
 ---
 

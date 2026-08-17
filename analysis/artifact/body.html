@@ -302,15 +302,15 @@ li::marker{color:var(--accent)}
 <div class="wrap">
 
   <header class="masthead">
-    <p class="eyebrow">Slay the Spire 2 &middot; 146 runs</p>
+    <p class="eyebrow">Slay the Spire 2 &middot; 148 runs</p>
     <h1>Does a Card's Win Rate Mean Anything?</h1>
     <p class="standfirst">The obvious way to rank cards by how much they help is measuring
-    something else entirely. Fix that, and 146 runs contain no card signal at all. Reach for
+    something else entirely. Fix that, and 148 runs contain no card signal at all. Reach for
     the cleaner design next and it comes out <em>worse</em> &mdash; which is a hint the
     question was the wrong shape to begin with.</p>
   </header>
 
-  <p>The data is 146 completed runs, 42 of them wins (28.8%), read out of the game's own
+  <p>The data is 148 completed runs, 42 of them wins (28.4%), read out of the game's own
   save files. Per character:</p>
 
   <div class="scroll">
@@ -320,7 +320,7 @@ li::marker{color:var(--accent)}
       <tbody>
         <tr><td>Defect</td><td class="num">8 / 46</td><td class="num">17.4%</td></tr>
         <tr><td>Necrobinder</td><td class="num">9 / 31</td><td class="num">29.0%</td></tr>
-        <tr><td>Ironclad</td><td class="num">8 / 29</td><td class="num">27.6%</td></tr>
+        <tr><td>Ironclad</td><td class="num">8 / 31</td><td class="num">25.8%</td></tr>
         <tr><td>Silent</td><td class="num">9 / 21</td><td class="num">42.9%</td></tr>
         <tr><td>Regent</td><td class="num">8 / 19</td><td class="num">42.1%</td></tr>
       </tbody>
@@ -329,7 +329,7 @@ li::marker{color:var(--accent)}
 
   <p>Worth pausing on that table, because it sets the scale for everything below. It looks
   like a 25-point spread between best and worst character. It isn't established:
-  &chi;&sup2; = 6.61 on 4 degrees of freedom, <em>p</em> = 0.16. At this sample size even a
+  &chi;&sup2; = 6.77 on 4 degrees of freedom, <em>p</em> = 0.15. At this sample size even a
   gap that large is consistent with luck. Hold that thought.</p>
 
   <p>For each card we know how many runs held it at any point, and how many of those were
@@ -345,11 +345,11 @@ li::marker{color:var(--accent)}
       <caption>Non-starter cards, all characters pooled</caption>
       <thead><tr><th>Runs holding the card</th><th class="num">Pooled win rate</th></tr></thead>
       <tbody>
-        <tr><td>1&ndash;2</td><td class="num">42.3%</td></tr>
-        <tr><td>3&ndash;5</td><td class="num">36.6%</td></tr>
-        <tr><td>6&ndash;10</td><td class="num">37.0%</td></tr>
-        <tr><td>11+</td><td class="num">28.4%</td></tr>
-        <tr class="rule-top"><td>Base rate</td><td class="num">28.8%</td></tr>
+        <tr><td>1&ndash;2</td><td class="num">41.8%</td></tr>
+        <tr><td>3&ndash;5</td><td class="num">35.8%</td></tr>
+        <tr><td>6&ndash;10</td><td class="num">36.8%</td></tr>
+        <tr><td>11+</td><td class="num">28.0%</td></tr>
+        <tr class="rule-top"><td>Base rate</td><td class="num">28.4%</td></tr>
       </tbody>
     </table>
   </div>
@@ -358,7 +358,7 @@ li::marker{color:var(--accent)}
   not a fact about card quality. It's a fact about run length:</p>
 
   <p class="pull">Winning runs held <span class="n">22.9</span> distinct cards on average.
-  Losing runs held <span class="n">17.8</span>.</p>
+  Losing runs held <span class="n">17.9</span>.</p>
 
   <p>If you die on floor 6 you saw a dozen cards. If you win you saw thirty-odd. So
   <em>any</em> card you have to survive to acquire is over-represented in winning runs,
@@ -382,8 +382,8 @@ li::marker{color:var(--accent)}
                + &gamma; &middot; (ascension / 10)
                + &delta; &middot; log(cards held)</div>
 
-  <p>Fitted on the 146 runs, this gives <strong>&delta; = +1.81</strong> per log-card and
-  <strong>&gamma; = &minus;0.62</strong> per ten ascension levels. The deck-size term is
+  <p>Fitted on the 148 runs, this gives <strong>&delta; = +3.21</strong> per log-card and
+  <strong>&gamma; = &minus;1.26</strong> per ten ascension levels. The deck-size term is
   doing enormous work, which is another way of saying the bias above is real and big.</p>
 
   <p>Now each run has a predicted win probability that already accounts for who was playing,
@@ -398,22 +398,23 @@ li::marker{color:var(--accent)}
       <div class="panel biased">
         <h4>Expected = the global win rate<span>What a raw win-rate list shows you</span></h4>
         <div class="row"><span class="lab">1&ndash;2</span><span class="track"><span class="bar" style="left:25%;width:58.6%"></span></span><span class="val">1.47</span></div>
-        <div class="row"><span class="lab">3&ndash;5</span><span class="track"><span class="bar" style="left:25%;width:33.9%"></span></span><span class="val">1.27</span></div>
-        <div class="row"><span class="lab">6&ndash;10</span><span class="track"><span class="bar" style="left:25%;width:35.6%"></span></span><span class="val">1.29</span></div>
+        <div class="row"><span class="lab">3&ndash;5</span><span class="track"><span class="bar" style="left:25%;width:32.5%"></span></span><span class="val">1.26</span></div>
+        <div class="row"><span class="lab">6&ndash;10</span><span class="track"><span class="bar" style="left:25%;width:37.5%"></span></span><span class="val">1.30</span></div>
         <div class="row"><span class="lab">11+</span><span class="track"><span class="bar" style="left:23.25%;width:1.75%"></span></span><span class="val">0.99</span></div>
       </div>
       <div class="panel fixed">
         <h4>Expected = the modelled per-run chance<span>After adjusting for run length</span></h4>
-        <div class="row"><span class="lab">1&ndash;2</span><span class="track"><span class="bar" style="left:25%;width:3.75%"></span></span><span class="val">1.03</span></div>
-        <div class="row"><span class="lab">3&ndash;5</span><span class="track"><span class="bar" style="left:25%;width:6.25%"></span></span><span class="val">1.05</span></div>
-        <div class="row"><span class="lab">6&ndash;10</span><span class="track"><span class="bar" style="left:25%;width:5%"></span></span><span class="val">1.04</span></div>
-        <div class="row"><span class="lab">11+</span><span class="track"><span class="bar" style="left:23.75%;width:1.25%"></span></span><span class="val">0.99</span></div>
+        <div class="row"><span class="lab">1&ndash;2</span><span class="track"><span class="bar" style="left:11.25%;width:13.75%"></span></span><span class="val">0.89</span></div>
+        <div class="row"><span class="lab">3&ndash;5</span><span class="track"><span class="bar" style="left:18.75%;width:6.25%"></span></span><span class="val">0.95</span></div>
+        <div class="row"><span class="lab">6&ndash;10</span><span class="track"><span class="bar" style="left:23.75%;width:1.25%"></span></span><span class="val">0.99</span></div>
+        <div class="row"><span class="lab">11+</span><span class="track"><span class="bar" style="left:25%;width:6.25%"></span></span><span class="val">1.05</span></div>
       </div>
     </div>
     <figcaption>The same cards and the same runs, judged against two baselines. Rows are how
     many runs held the card; the hairline is parity. On the left, cards held once or twice
     appear to win half again as often as expected &mdash; an artifact that shrinks steadily
-    as cards get commoner. On the right the gradient is gone.</figcaption>
+    as cards get commoner. On the right the slide is gone, and slightly overshot: a hint
+    that a straight line in log-depth is not quite the right shape.</figcaption>
   </figure>
 
   <h2>The bind</h2>
@@ -448,7 +449,7 @@ li::marker{color:var(--accent)}
         <tr><td>Regent</td><td class="num">22</td><td class="num">0.109</td><td class="num">0.189</td><td class="num">0.000</td></tr>
         <tr><td>Defect</td><td class="num">58</td><td class="num">0.124</td><td class="num">0.133</td><td class="num">0.000</td></tr>
         <tr><td>Necrobinder</td><td class="num">39</td><td class="num">0.192</td><td class="num">0.171</td><td class="num">0.089</td></tr>
-        <tr><td>Ironclad</td><td class="num">30</td><td class="num">0.181</td><td class="num">0.168</td><td class="num">0.066</td></tr>
+        <tr><td>Ironclad</td><td class="num">36</td><td class="num">0.174</td><td class="num">0.167</td><td class="num">0.049</td></tr>
         <tr><td>Silent</td><td class="num">21</td><td class="num">0.098</td><td class="num">0.176</td><td class="num">0.000</td></tr>
       </tbody>
     </table>
@@ -471,13 +472,13 @@ li::marker{color:var(--accent)}
   <p class="verdict"><strong>It says &tau; = 0.</strong> Every card's estimated effect
   collapses to &plusmn;0.001 log-odds. The chance any given card "helps" lands between 28%
   and 32%, where 50% means no evidence either way. The model is not broken; it is reporting
-  that after removing the survivorship artifact, 146 runs contain no distinguishable card
+  that after removing the survivorship artifact, 148 runs contain no distinguishable card
   signal.</p>
 
   <p>For scale: pinning one card's effect to &plusmn;0.25 log-odds needs about <strong>61
   runs that held that card</strong>, and +0.5 log-odds is already a <em>large</em> effect
   &mdash; the difference between a 31% and a 43% win rate, from one card. The largest
-  non-starter sample here is 66 runs, and the card is Ascender's Bane, the curse you get for
+  non-starter sample here is 68 runs, and the card is Ascender's Bane, the curse you get for
   playing at high ascension.</p>
 
   <h2>What were we actually asking?</h2>
@@ -516,7 +517,7 @@ li::marker{color:var(--accent)}
   where a card was offered against runs where it wasn't estimates it against the
   distribution of what you'd otherwise have been shown. The flaw is the estimand.</p>
 
-  <p>There's plenty of it, too: 2,206 usable reward screens across the 146 runs, 6,893 card
+  <p>There's plenty of it, too: 2,227 usable reward screens across the 148 runs, 6,893 card
   offers, 451 distinct cards &mdash; about 47 offers per run.</p>
 
   <h2>Clean, and worse</h2>
@@ -549,7 +550,7 @@ li::marker{color:var(--accent)}
 
   <p>One number per card assumes a card has one value. It doesn't. Feed is strong in a deck
   that can already kill and dead weight in one that can't. The honest quantity is an
-  interaction between the card and the deck it lands in &mdash; and 146 runs cannot support
+  interaction between the card and the deck it lands in &mdash; and 148 runs cannot support
   main effects, let alone interactions.</p>
 
   <h2>So can you rank cards at all?</h2>
@@ -567,12 +568,12 @@ li::marker{color:var(--accent)}
       <caption>Ranked at &tau; = 0.35</caption>
       <thead><tr><th>Card</th><th class="num">Effect</th><th class="num">Chance it helps</th><th class="num">Runs</th><th>Rarity</th></tr></thead>
       <tbody>
-        <tr><td>Feed</td><td class="num">+0.32</td><td class="num">83%</td><td class="num">8</td><td>Rare</td></tr>
-        <tr><td>Time's Up</td><td class="num">+0.29</td><td class="num">81%</td><td class="num">8</td><td>Rare</td></tr>
-        <tr><td>Infinite Blades</td><td class="num">+0.28</td><td class="num">81%</td><td class="num">11</td><td>Uncommon</td></tr>
+        <tr><td>Feed</td><td class="num">+0.29</td><td class="num">81%</td><td class="num">8</td><td>Rare</td></tr>
+        <tr><td>Bully</td><td class="num">+0.28</td><td class="num">80%</td><td class="num">8</td><td>Uncommon</td></tr>
+        <tr><td>Time's Up</td><td class="num">+0.25</td><td class="num">77%</td><td class="num">8</td><td>Rare</td></tr>
         <tr><td>&hellip;</td><td class="num"></td><td class="num"></td><td class="num"></td><td></td></tr>
-        <tr><td>Leap</td><td class="num">&minus;0.26</td><td class="num">16%</td><td class="num">30</td><td>Common</td></tr>
-        <tr><td>TURBO</td><td class="num">&minus;0.32</td><td class="num">15%</td><td class="num">11</td><td>Common</td></tr>
+        <tr><td>Inflame</td><td class="num">&minus;0.28</td><td class="num">18%</td><td class="num">9</td><td>Uncommon</td></tr>
+        <tr><td>Pommel Strike</td><td class="num">&minus;0.29</td><td class="num">17%</td><td class="num">8</td><td>Common</td></tr>
       </tbody>
     </table>
   </div>
@@ -609,16 +610,16 @@ li::marker{color:var(--accent)}
 
   <p>The useful one is about sample size, and it's more humbling than it first looks. Card
   identity explains nothing detectable here. But neither does character: that 25-point
-  spread in the opening table doesn't clear the noise bar either. At 146 runs the only thing
+  spread in the opening table doesn't clear the noise bar either. At 148 runs the only thing
   that clearly separates winning from losing is how far the run got &mdash; which is very
   nearly a restatement of winning.</p>
 
-  <p class="verdict">That suggests the run is the wrong unit of analysis. There are 146 of
-  them, but <strong>2,206 reward screens and 6,893 card offers</strong> underneath.
+  <p class="verdict">That suggests the run is the wrong unit of analysis. There are 148 of
+  them, but <strong>2,227 reward screens and 6,970 card offers</strong> underneath.
   Questions posed at the level of the decision rather than the run start with fifteen to
   forty times the sample: where runs actually die, what the deck looked like going into the
   fight that ended it, whether a choice predicts surviving the next five floors rather than
-  the whole run. That's where 146 runs still has something to say.</p>
+  the whole run. That's where 148 runs still has something to say.</p>
 
   <p class="colophon">Numbers produced with
   <a href="https://github.com/thequantumfalcon/spirescope">Spirescope</a>, a local-first

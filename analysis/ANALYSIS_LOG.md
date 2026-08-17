@@ -31,9 +31,10 @@ Bayes over a 1-D grid.
 - The naive statistic is **mostly a rarity ranking**. Pooled by how often a card
   was held, win rates run 42.3% / 36.6% / 37.0% / 28.4% against a 28.8% base —
   driven entirely by winning runs holding 22.9 distinct cards to losing runs'
-  17.8. Correcting flattens it to observed/expected of 1.03 / 1.05 / 1.04 / 0.99.
-- The depth coefficient is **δ = +1.81** per log-card; ascension **γ = −0.62**
-  per ten levels.
+  17.8. Correcting removes that gradient and slightly overshoots it:
+  observed/expected of 0.89 / 0.95 / 0.99 / 1.05.
+- The depth coefficient is **δ = +3.21** per log-card (se 0.76, p = 2×10⁻⁵);
+  ascension **γ = −1.26** per ten levels.
 - Within-character spread of card win rates is **at or below the binomial noise
   floor** for three of five characters.
 - Empirical Bayes returns **τ = 0**. Every card's effect collapses to ±0.001
@@ -47,15 +48,25 @@ produce a defensible ranking. A ranking can be *manufactured* by fixing τ by
 hand (τ = 0.35 gives a bounded ordering, nothing above 83% confidence) — that is
 an assertion the data does not support, and must be labelled as such.
 
+**Correction, 2026-08-17.** The originally reported δ = +1.81 and γ = −0.62 were
+**wrong**. They came from a hand-rolled gradient ascent that had not converged
+and carried a ridge penalty: it reproduces +1.80 exactly, but at a
+log-likelihood of −74.94 against the MLE's −71.78. The converged values are
+above. This also moves the corrected observed/expected from a flat
+1.03 / 1.05 / 1.04 / 0.99 to 0.89 / 0.95 / 0.99 / 1.05 — the rarity gradient is
+still removed, but slightly over-corrected, which says the linear-in-log-depth
+form is not quite right. Conclusions are unaffected: the naive statistic is
+still an artifact and τ is still 0. `card_model.py` uses statsmodels and
+reproduces the corrected figures.
+
 **Trap hit along the way.** The first τ fit used the Normal prior's kernel
 without its `1/(τ√2π)` normaliser, so the marginal likelihood rose monotonically
 in τ, hit the grid boundary, and reported *no shrinkage* — yielding a confident
 ranking with Feed at +1.73 log-odds and 93% confidence. Entirely an artifact.
 See pitfall 11 in `DATA_GUIDE.md`.
 
-**Written up.** `card-winrate-signal.md` — note it is **stale at 146 runs**
-against the 148 here; the conclusions are unaffected but the figures differ.
-Also published as a private artifact:
+**Written up.** `card-winrate-signal.md`, refreshed to 148 runs and carrying the
+corrected coefficients. Also published as a private artifact:
 <https://claude.ai/code/artifact/28f53109-f6ee-42a2-bb4d-e9619cb7ebc6>. Source
 for the published version is in `artifact/`; rebuild with
 
@@ -78,7 +89,7 @@ be used as an instrument to get a clean causal estimate?
   screen shows three cards, so being offered X denies you Y — which makes the
   contrast "X against what you'd otherwise have been shown", exactly the
   decision-relevant quantity.
-- There is ample raw material: 2,206 reward screens, 6,893 offers, 451 distinct
+- There is ample raw material: 2,227 reward screens, 6,970 offers, 451 distinct
   cards, ~47 offers per run.
 - **It is hopeless on power.** Median compliance is 19%, so ITT is diluted to a
   fifth of the effect: +0.50 log-odds shows up as +0.10 against SE ≈ 0.45.
