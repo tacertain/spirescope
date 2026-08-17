@@ -155,6 +155,18 @@ error was made *twice* in one session: corrected once for act 1, then a
 or ANOVA on the pre-treatment covariates — floor, ascension, arrival HP,
 character mix. If they do not balance, the groups are not comparable.
 
+**3b. Find draw pools by co-occurrence, not by position.** Act 1 has **two
+disjoint elite pools**, one per act variant, and both occupy floors 7–15 — so
+every floor-based grouping merges them without complaint. What separates them is
+that two elites from the same pool appear in the same run and two from rival
+pools never do (zero shared runs across the boundary, 12–38 within each).
+`elite_cooccurrence()` computes this and `verify_assumptions()` guards
+`ELITE_POOLS` against it. The same reasoning applies to any content the game
+draws from alternative sets. Note only pools that are *alternatives* must be
+disjoint — act-1 and act-2 elites co-occur constantly, because a run passes
+through every act, and a first version of this check failed on 45 perfectly
+legitimate pairs for exactly that reason.
+
 **4. The unit of analysis decides whether you have any power.** Approximate
 counts in the current history:
 

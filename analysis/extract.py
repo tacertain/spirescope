@@ -31,19 +31,28 @@ _PLAYER = 0
 # than trust if the game adds elites: group by median floor, then check
 # `balance(rows, "enc", ["floor"])` comes back near 1.
 ELITE_POOLS = {
-    "act1": ["ENCOUNTER.TERROR_EEL_ELITE",                # all floors 7-15
-             "ENCOUNTER.PHANTASMAL_GARDENERS_ELITE",
-             "ENCOUNTER.SKULKING_COLONY_ELITE",
-             "ENCOUNTER.PHROG_PARASITE_ELITE",
-             "ENCOUNTER.BYGONE_EFFIGY_ELITE",
-             "ENCOUNTER.BYRDONIS_ELITE"],
+    # Act 1 has TWO disjoint pools, one per act variant. Floor range does not
+    # separate them — both sit at 7-15 — so grouping by floor alone silently
+    # merges them. Co-occurrence does: `elite_cooccurrence()` shows exactly
+    # zero shared runs across the A/B boundary, against 12-38 within each.
+    "act1_overgrowth": ["ENCOUNTER.BYGONE_EFFIGY_ELITE",
+                        "ENCOUNTER.BYRDONIS_ELITE",
+                        "ENCOUNTER.PHROG_PARASITE_ELITE"],
+    "act1_underdocks": ["ENCOUNTER.PHANTASMAL_GARDENERS_ELITE",
+                        "ENCOUNTER.SKULKING_COLONY_ELITE",
+                        "ENCOUNTER.TERROR_EEL_ELITE"],
     "act2": ["ENCOUNTER.DECIMILLIPEDE_ELITE",             # floors 24-33
-             "ENCOUNTER.ENTOMANCER_ELITE",
-             "ENCOUNTER.INFESTED_PRISMS_ELITE"],
+             "ENCOUNTER.ENTOMANCER_ELITE",                # single pool: these
+             "ENCOUNTER.INFESTED_PRISMS_ELITE"],          # do co-occur
     "act3": ["ENCOUNTER.KNIGHTS_ELITE",                   # floors 40-47
-             "ENCOUNTER.MECHA_KNIGHT_ELITE",
+             "ENCOUNTER.MECHA_KNIGHT_ELITE",              # single pool
              "ENCOUNTER.SOUL_NEXUS_ELITE"],
 }
+
+# Which act-1 variant draws which pool. Mapping is exact: 60 Overgrowth runs met
+# a pool-A elite and no Underdocks run did, and vice versa for 73 runs.
+ACT1_VARIANT_POOL = {"ACT.OVERGROWTH": "act1_overgrowth",
+                     "ACT.UNDERDOCKS": "act1_underdocks"}
 
 
 def raw_runs(skip_abandoned: bool = False) -> list[dict]:
@@ -226,6 +235,24 @@ def card_offers(skip_abandoned: bool = False) -> list[dict]:
     return rows
 
 
+def elite_cooccurrence() -> dict[tuple[str, str], int]:
+    """{(elite_a, elite_b): runs containing both} — how to find a draw pool.
+
+    Two elites in the same pool turn up in the same run; elites in disjoint
+    pools never do. This is the *only* reliable way to separate act 1's two
+    pools, because both occupy floors 7-15 and so look like one group under any
+    floor-based test. Run it before trusting `ELITE_POOLS` after a game update.
+    """
+    pairs: dict[tuple[str, str], int] = collections.Counter()
+    for d in raw_runs():
+        seen = sorted({room.get("model_id", "") for t, _ps, room in flat_floors(d)
+                       if t == "elite" and room.get("model_id")})
+        for i, a in enumerate(seen):
+            for b in seen[i + 1:]:
+                pairs[(a, b)] += 1
+    return dict(pairs)
+
+
 def verify_assumptions() -> list[tuple[str, bool, str]]:
     """Re-check the data-shape claims DATA_GUIDE.md relies on.
 
@@ -278,6 +305,26 @@ def verify_assumptions() -> list[tuple[str, bool, str]]:
     out.append(("RunFloor.floor == 1-based index into flat_floors",
                 bad_idx == 0 and joined == len(runs),
                 f"{joined - bad_idx}/{len(runs)} runs agree"))
+
+    # Only pools that are ALTERNATIVES to each other must be disjoint — the two
+    # act-1 variants. Pools from different acts co-occur constantly, because a
+    # run passes through every act; checking those too was the first version of
+    # this and it failed on 45 perfectly legitimate pairs.
+    co = elite_cooccurrence()
+    groups: dict[str, list[str]] = {}
+    for pool in ELITE_POOLS:
+        groups.setdefault(pool.split("_")[0], []).append(pool)
+    bad_pairs = 0
+    for alts in groups.values():
+        for i, pa in enumerate(alts):
+            for pb in alts[i + 1:]:
+                for a in ELITE_POOLS[pa]:
+                    for b in ELITE_POOLS[pb]:
+                        if co.get(tuple(sorted((a, b))), 0):
+                            bad_pairs += 1
+    n_alt = sum(len(a) - 1 for a in groups.values())
+    out.append(("alternative elite pools never co-occur", bad_pairs == 0,
+                f"{bad_pairs} bad pair(s) across {n_alt} alternative-pool split(s)"))
 
     # Informational, not a check: one multiplayer run is a known and accepted
     # condition, and a check that always fails is a check people stop reading.

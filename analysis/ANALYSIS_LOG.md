@@ -188,6 +188,52 @@ control group, not by collecting more data.
 
 ---
 
+## 5. The act-1 variant
+
+**Question.** Act 1 comes in two variants — Overgrowth and Underdocks — and each
+draws elites from its own disjoint pool of three. Does that matter?
+
+**How the pools were found.** Not by floor: both sit at floors 7–15, so every
+floor-based grouping merges them silently. **Co-occurrence separates them** —
+two elites in the same pool turn up in the same run, elites in rival pools never
+do. Zero shared runs across the boundary, against 12–38 within each.
+`elite_cooccurrence()` does this, and `verify_assumptions()` now guards it.
+
+| pool | elites | act-1 elite deaths |
+|---|---|---|
+| Overgrowth | Bygone Effigy, Byrdonis, Phrog Parasite | 9/97 = **9.3%** |
+| Underdocks | Phantasmal Gardeners, Skulking Colony, Terror Eel | 5/152 = **3.3%** |
+
+**Findings.**
+
+- **The variant predicts the run.** Underdocks wins 28/78 = 35.9%, Overgrowth
+  14/70 = 20.0%. Fisher p = 0.044. Adjusted for ascension and character the
+  effect *strengthens*: **OR 2.39 (95% CI 1.09–5.24), p = 0.030**, LR test
+  p = 0.026.
+- **It is not your own improvement in disguise.** The obvious threat was that
+  one variant clustered in a period when you played better. It does not:
+  Underdocks share by quarter of the history runs 54% / 60% / 46% / 51%, and
+  Mann-Whitney on position gives p = 0.486. Ascension (3.67 vs 3.89) and
+  character mix are close.
+- **There is a mechanism.** Overgrowth's elites are about three times deadlier
+  per fight (9.3% vs 3.3%, Fisher p = 0.053), and Overgrowth runs consequently
+  fight fewer act-1 elites (1.39 vs 1.95 per run) — fewer elites means fewer
+  rewards, compounding into the rest of the run.
+
+**Useful?** Yes — this is **the only run-level factor that has cleared the noise
+bar**. Character did not (p = 0.15) and cards did not (τ = 0). It is plausibly
+the one genuinely randomised run-level contrast available, since the variant is
+fixed at run start and balanced on everything checked.
+
+**Caveats.** p = 0.030 on a single test is not strong, and a great deal has been
+tested across this history — though this one was looked at for a structural
+reason rather than found by fishing, which counts for something. And whether the
+variant is randomly assigned or *chosen* is unverified: the near-even 78/70
+split and temporal stability are consistent with a seed draw, but if it is a
+player choice, intent confounds it. Worth settling before leaning on this.
+
+---
+
 ## Judgement calls, flagged as such
 
 Everything above this line is a measurement. These are not — they are opinions
