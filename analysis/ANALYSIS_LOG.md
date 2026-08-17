@@ -312,14 +312,51 @@ would define how many elite nodes an act gets — `Map/MapPostProcessing.cs`,
 parameters; the only non-code act data in the archive is five localisation
 titles.
 
-**Two routes remain, neither of them analysis.** Ask the player, who knows
-whether they deliberately avoid Overgrowth elites — twice already in this
-project a piece of game knowledge has settled something the data could not.
-Or decompile the shipped .NET assembly, which is a different kind of
-undertaking and out of scope here.
+**The player was asked, and it is not conscious routing.** Andrew sets the path
+at the start of a run, optimises for rest sites and events over hallway fights,
+sprinkles elites in, and does not route differently by variant. Given a choice
+between a hallway fight and an elite he will often take the elite for the
+rewards.
 
-Until then the mechanism behind the largest effect in this project is
-**undetermined**, and the log should not imply otherwise.
+**That makes the walked-path composition the strongest evidence available**, and
+it leans structural. Among act-1 completers:
+
+| act-1 node type | Underdocks | Overgrowth | p |
+|---|---|---|---|
+| path length | 17.00 | 16.98 | 0.22 |
+| rest sites | 3.04 | 3.16 | 0.48 |
+| events | 3.67 | 3.42 | 0.27 |
+| shops | 1.14 | 1.07 | 0.65 |
+| **elites** | **2.01** | **1.42** | **0.0006** |
+| **monsters** | **4.13** | **4.91** | **0.0053** |
+
+Everything the stated policy optimises for is equally satisfied, and total combat
+nodes are near-identical (6.14 vs 6.33). The entire difference is the elite:
+monster ratio *within* the combat slots — 32.8% vs 22.5%. A policy indifferent to
+variant, meeting its stated targets equally in both, should not produce that.
+
+The difference is also **row-localised**, which policy struggles to explain.
+Elites are eligible on exactly the same rows in both variants (7, 8, 9, 11–15,
+never 1–6, 10, 16, 17), and the fixed furniture is identical — ancient row 1,
+treasure row 10, boss row 17. But rows 7, 11 and 14 match almost exactly while
+8, 12, 13 and 15 diverge. Row 12 is the extreme: elite 29% → 9%, monster 13% →
+38%. Shop row placement also shifts (median row 7 vs 12, p = 0.052), and a
+player does not relocate shops.
+
+**Best reading: the maps differ, most likely in where elites sit relative to the
+rests and events a path is steered toward, rather than in how many exist.** That
+is consistent with equal rest/event counts, with the row-localisation, and with
+Andrew's surprise at the idea that one variant simply has more elite nodes.
+
+**It remains unproven and cannot be proven from saves.** Every figure above is a
+*walked* path; nothing records what the map offered and the player declined, so
+"fewer elites available" and "elites harder to reach without giving up a rest"
+are observationally identical here.
+
+**What would settle it:** manually recording how many elite nodes each act-1 map
+*offers* over the next 20–30 runs. That is a few seconds per run and would
+answer definitively what no amount of reanalysis can. Failing that, decompiling
+the shipped .NET assembly, which is out of scope here.
 
 ---
 
