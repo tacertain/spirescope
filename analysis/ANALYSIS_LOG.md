@@ -10,9 +10,15 @@ of results.
 
 **Scale-setting result, true of everything here.** Character win rates span
 17.4% (Defect, 8/46) to 42.9% (Silent, 9/21) — and that 25-point gap is **not
-established**: χ² = 6.61 on 4 df, p = 0.16. At 148 runs even a difference that
+established**: χ² = 6.77 on 4 df, p = 0.15. At 148 runs even a difference that
 large is consistent with luck. Any run-level effect smaller than "which
 character you picked" is out of reach by construction.
+
+**The one exception, and the headline of this file.** The act-1 variant is
+assigned randomly by the seed, and it moves the win rate **+15.9 points**
+(35.9% vs 20.0%, OR 2.39, p = 0.030). It is the only causal run-level result
+here and the largest effect measured anywhere in the project — see section 5.
+If you read nothing else, read that one.
 
 ---
 
@@ -220,17 +226,37 @@ do. Zero shared runs across the boundary, against 12–38 within each.
   fight fewer act-1 elites (1.39 vs 1.95 per run) — fewer elites means fewer
   rewards, compounding into the rest of the run.
 
-**Useful?** Yes — this is **the only run-level factor that has cleared the noise
-bar**. Character did not (p = 0.15) and cards did not (τ = 0). It is plausibly
-the one genuinely randomised run-level contrast available, since the variant is
-fixed at run start and balanced on everything checked.
+**The variant is assigned randomly by the seed** (confirmed by Andrew, 2026-08-17).
+That changes the status of this result completely. It is not an association that
+survived adjustment — it is a **randomised experiment the game runs for you**,
+and the observed covariate balance is a consequence of the randomisation rather
+than a lucky break. The effect is causal.
 
-**Caveats.** p = 0.030 on a single test is not strong, and a great deal has been
-tested across this history — though this one was looked at for a structural
-reason rather than found by fishing, which counts for something. And whether the
-variant is randomly assigned or *chosen* is unverified: the near-even 78/70
-split and temporal stability are consistent with a seed draw, but if it is a
-player choice, intent confounds it. Worth settling before leaning on this.
+In the units a player cares about: **+15.9 percentage points of win rate**,
+95% CI **+1.7 to +30.1**. Wide, but it excludes zero, and the lower end is still
+larger than any card effect the data can resolve.
+
+**Do NOT adjust this for run depth.** Adding `log_depth` drops it to OR 1.99,
+p = 0.114, which looks like the finding evaporating and is actually the analysis
+breaking. Depth is *downstream* of the variant — Overgrowth's deadlier elites end
+runs sooner and get fought less often, so depth is precisely the channel the
+effect travels down. Conditioning a randomised treatment on a post-treatment
+variable is textbook over-adjustment. Character and ascension are fine to
+include: both are settled before the seed draws the act.
+
+For the same reason, **do not add the variant to `baseline()`**. It gains little
+there (LR p = 0.114) exactly because `log_depth` already absorbs it, and the
+change would invalidate the reproduction checks for no real gain.
+
+**Useful?** This is **the only causal run-level result in the project**, and the
+largest effect measured anywhere in it. Character never cleared the noise bar
+(p = 0.15); cards returned τ = 0. The one thing that demonstrably moves this
+player's win rate is a coin the game flips before the run starts.
+
+**Remaining caveat.** p = 0.030 on a single test, against a lot of testing across
+this history. It was looked at for a structural reason rather than found by
+fishing, and it now has randomisation and a mechanism behind it — but it wants
+replication as the history grows.
 
 ---
 

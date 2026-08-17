@@ -186,11 +186,22 @@ questions start with 4–45× the sample **and** measure the outcome at the
 decision, so there is no survivorship dilution to correct away. Prefer them.
 
 **5. What the game randomises is where the causal leverage is.** Which card you
-are offered, and which elite appears at an elite node, are drawn by the game.
-What you take, and whether you walk into the node, are not. Between-elite
-comparisons within one act pool are quasi-experimental — covariate balance
-supports it (ascension F = 1.13, flat character mix). Exploit that; do not
-apologise for it.
+are offered, which elite appears at an elite node, and **which act-1 variant a
+run gets**, are all drawn by the game. What you take, and whether you walk into
+the node, are not. Between-elite comparisons within one act pool are
+quasi-experimental — covariate balance supports it (ascension F = 1.13, flat
+character mix). The act-1 variant is better still: seed-assigned, so it is a
+randomised experiment the game runs for you, and the only causal run-level
+handle found so far. Exploit these; do not apologise for them.
+
+**5b. Never condition a randomised treatment on something downstream of it.**
+The act-1 variant's effect is OR 2.39 (p = 0.030) adjusting for character and
+ascension, both settled before the seed draws. Add `log_depth` and it falls to
+OR 1.99, p = 0.114 — which reads as the finding evaporating and is really the
+analysis breaking, because depth is the channel the effect travels down: the
+harder pool ends runs sooner and gets fought less. Adjust only for what precedes
+the randomisation. This is the same confounder/mediator trap as pitfall 2,
+except here the right answer is unambiguous rather than a choice of biases.
 
 **6. But randomised does not mean powered.** The offer-as-instrument design is
 clean and useless here: you take an offered card about 19% of the time, so an
