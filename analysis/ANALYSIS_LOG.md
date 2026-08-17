@@ -169,7 +169,7 @@ the confidence interval spans "mildly protective" to "3.6× worse".
 ## Cross-cutting lesson
 
 Every run-level question has come back underpowered, and every decision-level
-question has produced something. 148 runs is a small sample; 2,206 reward
+question has produced something. 148 runs is a small sample; 2,227 reward
 screens and 835 rest choices are not. **Choose the unit first.**
 
 The second lesson is that the comparison group is where the errors live. Three
@@ -193,16 +193,29 @@ Roughly in order of expected value.
    nothing has touched them. Unused potions at death would be a clean,
    decision-level, high-n question — and a classic player error, so there is a
    real chance of a large effect.
-4. **Path choice: taking versus skipping elites.** Requires reconstructing the
+4. **Fix the depth adjustment's functional form.** `baseline()` puts depth in as
+   a straight line in `log(cards held)`, and it over-corrects: observed/expected
+   runs 0.89 / 0.95 / 0.99 / 1.05 across the held-count buckets when a correct
+   adjustment would be flat at 1.00. That table *is* the goodness-of-fit test —
+   it needs no extra machinery, just re-running it after each attempt. Try a
+   quadratic in log-depth, a spline, or binning depth into quantiles.
+
+   This ranks higher than it looks. `baseline()` is the shared run-level
+   correction, so anything built on it inherits the mis-specification — and it
+   is the adjustment standing between a raw statistic and the survivorship
+   artifact that motivated this whole exercise. Fixing it will not change τ = 0,
+   which is the point: it is cheap insurance for every future analysis rather
+   than a way to rescue this one.
+5. **Path choice: taking versus skipping elites.** Requires reconstructing the
    map from `map_point_history`; check whether the branch structure is
    recoverable before committing.
-5. **Fix the app's card sort.** Independent of any new analysis: the current
+6. **Fix the app's card sort.** Independent of any new analysis: the current
    Win Rate order is a rarity ranking. `_sort_key_winrate` in `sts2/routes.py`
    keys off raw held win rate with sample size only as a tiebreak — a 2/2
    outranks an 8/19 by design. Either adjust for run depth or relabel it.
-6. **The 968 `unknown` and 324 `ancient` floors.** About a quarter of all
+7. **The 968 `unknown` and 324 `ancient` floors.** About a quarter of all
    floors, never examined. `unknown` is presumably events; worth at least
    identifying before assuming they are inert.
-7. **Re-run item 4 of the rest-site analysis when the history has grown
+8. **Re-run the rest-site analysis (section 4 above) when the history has grown
    materially** — the 35–50% forge result is the one live lead that more data
    would settle.
