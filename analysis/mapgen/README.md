@@ -67,6 +67,29 @@ dotnet run --project tools/ApiDump -- lib/sts2.dll type RunManager
 dotnet run --project tools/ApiDump -- lib/sts2.dll find SetUpSaved
 ```
 
+## Upstream status — read before applying the patch
+
+As of 2026-08-17 the **two compatibility fixes have been submitted upstream** as
+a draft PR: <https://github.com/wuhao21/sts2-cli/pull/90>, from branch
+`fix/v0.107.1-compat` on the fork <https://github.com/tacertain/sts2-cli>. The
+`act1` feature is deliberately **not** in that PR — it is ours, not a fix.
+
+So the patch here may be partly redundant depending on when you pick this up:
+
+- **PR still open** → apply the whole patch, as described above.
+- **PR merged** → the two fixes are already in `main`; applying the full patch
+  will conflict. Take only the `act1` hunks (the `StartRun` signature, the act
+  list construction, and the `Program.cs` dispatch line).
+- **PR rejected** → nothing changes; the full patch stands.
+
+The working clone at `C:/Users/tacer/GitHub/sts2-cli` carries **uncommitted**
+changes on `main` — the full set including `act1` — plus a `myfork` remote and
+the `fix/v0.107.1-compat` branch. Do not `git checkout .` there expecting it to
+be disposable. It is recoverable from this patch either way, but not obviously.
+
+Exact environment this was built and validated against: game **v0.107.1**, commit
+`59260271`, .NET SDK **9.0.317**, Windows.
+
 ## Running it
 
 Build the TSV from the run history — restrict to the build the installed game
