@@ -115,6 +115,13 @@ analysis. They are **not** in `pyproject.toml` and must not be added — the app
 does not depend on them, and `build.py` builds the distributable from a separate
 clean `.venv_build`, so the shipped binary is unaffected. Same status as Pillow.
 
+On a fresh checkout they will be missing and everything here will fail on
+import. One command restores them, and `statsmodels` pulls the other three:
+
+```bash
+.venv/Scripts/python.exe -m pip install statsmodels
+```
+
 **Do not hand-roll the statistics.** Two published numbers were wrong because of
 this, in different ways:
 
