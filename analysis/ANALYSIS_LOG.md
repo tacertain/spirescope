@@ -284,6 +284,83 @@ replication as the history grows.
 
 ---
 
+## UNBLOCKED: the map can be regenerated
+
+`sts2-cli` works, after four fixes. Setup, findings and the remaining caveats are
+below; the section after it is kept as the record of what was blocked and why,
+since the reasoning still applies to anything the regenerator cannot reach.
+
+**Getting it running** (2026-08-17, game v0.107.1, tool at `../sts2-cli`):
+
+1. `.NET 9 SDK` installed via winget (9.0.317). The machine had runtimes only.
+2. `setup.sh` needs the **explicit** game path — its Windows branch points at the
+   install root, but the DLLs live in `data_sts2_windows_x86_64/`. Its macOS
+   branch points into the equivalent subdirectory, so this looks like an
+   oversight. Pass the path as `$1`.
+3. `RunSimulator.cs` called `SetUpSavedSinglePlayer`; v0.107.1 spells it
+   `SetUpSavedSingleplayer`.
+4. `RunState.CreateForTest` now reaches `ModelDb.BadgeModels`, which throws while
+   `ModManager.State` is `None`. `ResetForTests()` clears the mod list but leaves
+   the state, so the state is driven to `Skipped` — "finished, no mods" — through
+   the private setter.
+
+**The README understates it: `get_map` already dumps the whole map** — every
+node with `col`, `row`, `type`, `children`, `visited`. No patch was needed for
+that. The only thing added was an `act1` argument to `start_run`, because the
+default act list is fixed at Overgrowth and the variant is what we need to vary.
+
+**Result: the act-1 variant does not change the map at all.** Generating the same
+seed as both variants produces byte-identical topology — same 65 nodes, same
+coordinates, the same type at every coordinate, the same eight elite positions,
+the same boss coordinate. The variant changes only which *content* fills the
+nodes: which elites, which events, the art. So "Overgrowth offers fewer elite
+nodes" is **false as a structural claim about map generation**.
+
+**Nor do the real seeds differ.** Regenerating the act-1 map for all 89 v0.107.1
+runs, grouped by the variant each run actually had: elite nodes offered average
+**7.89** (Underdocks) against **7.84** (Overgrowth), Mann-Whitney p = 0.738, with
+41 of 45 and 41 of 44 maps carrying exactly 8. Availability is identical.
+
+**Validated 89/89.** Every walked path is consistent with its regenerated map,
+node type by node type. Map rows run 1–15 with the boss at 16, so floor *f* is
+row *f−1* — an off-by-one that made a first validation pass fail 88/89 and was
+worth chasing rather than explaining away.
+
+**So it is behaviour.** Reconstructing which column was walked — the type
+sequence identifies a unique path in **85 of 89** runs — gives 398 real choice
+points with two or more options, and with them the offered-versus-taken data the
+save files never held:
+
+| | Underdocks | Overgrowth |
+|---|---|---|
+| an elite was among the options | 29.9% | **33.2%** |
+| took the elite when one was offered | **53.1%** (34/64) | **32.8%** (20/61) |
+
+Fisher p = 0.030. Overgrowth offered elites slightly *more* often and they were
+taken far less.
+
+**Part of that is what the elite was competing against.** On Overgrowth the rival
+option was more often a rest site (23% vs 15%) or an event (40% vs 31%) and less
+often a plain monster (31% vs 46%) — and a competing rest site suppresses
+elite-taking hard in both variants (Underdocks 30.0% vs 57.4%; Overgrowth 6.2%
+vs 42.2%). A policy of "rests and events first, elite over a hallway fight"
+mechanically yields fewer elites when elites are paired against rests more often.
+
+But that cannot be the whole story, and it has no mechanism. The maps are
+provably variant-independent, so any systematic difference in the *offered*
+environment must be chance — and the gap persists inside both strata anyway
+(42.2% vs 57.4% with no rest on the menu). The residue is a real behavioural
+difference: fewer elites are taken on Overgrowth given the same opportunity.
+
+**Which may well be correct play rather than a mistake.** Overgrowth's elites are
+about three times deadlier (9.3% vs 3.3% fatality). Taking fewer of them is a
+rational response to that, and Andrew reports occasionally routing on health —
+Overgrowth runs arrive at decisions in worse shape. Whether the avoidance is
+under- or over-corrected is a further question, and now an answerable one: the
+regenerator provides the counterfactual maps.
+
+---
+
 ## Blocked: why the elite-avoidance question cannot be answered
 
 Overgrowth runs fight 1.42 act-1 elites to Underdocks' 2.01, and that gap is not
