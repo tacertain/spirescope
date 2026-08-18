@@ -1,0 +1,108 @@
+diff --git a/src/Sts2Headless/Program.cs b/src/Sts2Headless/Program.cs
+index 800f139..fb6cd57 100644
+--- a/src/Sts2Headless/Program.cs
++++ b/src/Sts2Headless/Program.cs
+@@ -118,7 +118,8 @@ class Program
+                     cmd.TryGetProperty("character", out var ch) ? ch.GetString() ?? "Ironclad" : "Ironclad",
+                     cmd.TryGetProperty("ascension", out var asc) ? asc.GetInt32() : 0,
+                     cmd.TryGetProperty("seed", out var s) ? s.GetString() : null,
+-                    cmd.TryGetProperty("lang", out var lang) ? lang.GetString() ?? "en" : "en"
++                    cmd.TryGetProperty("lang", out var lang) ? lang.GetString() ?? "en" : "en",
++                    cmd.TryGetProperty("act1", out var a1) ? a1.GetString() : null
+                 );
+ 
+             case "action":
+diff --git a/src/Sts2Headless/RunSimulator.cs b/src/Sts2Headless/RunSimulator.cs
+index 6b9de4a..30f8cba 100644
+--- a/src/Sts2Headless/RunSimulator.cs
++++ b/src/Sts2Headless/RunSimulator.cs
+@@ -229,7 +229,7 @@ public class RunSimulator
+     private IReadOnlyList<IReadOnlyList<CardModel>>? _pendingBundles;
+     private TaskCompletionSource<IEnumerable<CardModel>>? _pendingBundleTcs;
+ 
+-    public Dictionary<string, object?> StartRun(string character, int ascension = 0, string? seed = null, string lang = "en")
++    public Dictionary<string, object?> StartRun(string character, int ascension = 0, string? seed = null, string lang = "en", string? act1 = null)
+     {
+         try
+         {
+@@ -243,12 +243,40 @@ public class RunSimulator
+             var seedStr = seed ?? "headless_" + DateTimeOffset.UtcNow.ToUnixTimeSeconds();
+             Log($"Creating RunState with seed={seedStr}");
+ 
++            // The default act list is fixed (Overgrowth), so act 1's variant cannot
++            // be chosen. `act1` overrides it — needed to compare the two act-1
++            // variants, which draw from disjoint elite pools.
++            IReadOnlyList<ActModel>? actList = null;
++            if (!string.IsNullOrEmpty(act1))
++            {
++                // ActsByIndex is grouped by act position: [0] holds the act-1
++                // variants (Overgrowth / Underdocks), [1] and [2] the later acts.
++                var byIndex = ModelDb.ActsByIndex;
++                var first = byIndex[0].FirstOrDefault(a =>
++                    (a.Id.Entry ?? "").IndexOf(act1!, StringComparison.OrdinalIgnoreCase) >= 0);
++                if (first == null)
++                    return Error($"Unknown act1 '{act1}'. Known: "
++                        + string.Join(", ", byIndex[0].Select(a => a.Id.Entry)));
++                var list = new List<ActModel> { first };
++                for (int i = 1; i < byIndex.Count; i++)
++                    list.Add(byIndex[i].FirstOrDefault(a => a.IsDefault) ?? byIndex[i][0]);
++                actList = list;
++                Log($"Acts: {string.Join(" -> ", list.Select(a => a.Id.Entry))}");
++            }
++
+             // Use CreateForTest which properly handles mutable copies internally
+-            _runState = RunState.CreateForTest(
+-                players: new[] { player },
+-                ascensionLevel: ascension,
+-                seed: seedStr
+-            );
++            _runState = actList == null
++                ? RunState.CreateForTest(
++                    players: new[] { player },
++                    ascensionLevel: ascension,
++                    seed: seedStr)
++                : RunState.CreateForTest(
++                    players: new[] { player },
++                    acts: actList,
++                    modifiers: Array.Empty<ModifierModel>(),
++                    gameMode: GameMode.Standard,
++                    ascensionLevel: ascension,
++                    seed: seedStr);
+ 
+             // Set up RunManager with test mode
+             var netService = new NetSingleplayerGameService();
+@@ -517,7 +545,8 @@ public class RunSimulator
+             Log($"RunState created, players={_runState.Players?.Count}");
+ 
+             var netService = new NetSingleplayerGameService();
+-            RunManager.Instance.SetUpSavedSinglePlayer(_runState, save);
++            // v0.107.1 spells this "Singleplayer", not "SinglePlayer".
++            _ = RunManager.Instance.SetUpSavedSingleplayer(_runState, save);
+             LocalContext.NetId = netService.NetId;
+ 
+             CombatManager.Instance.TurnStarted += _ => _turnStarted.Set();
+@@ -3074,6 +3103,24 @@ public class RunSimulator
+ 
+         TestMode.IsOn = true;
+ 
++        // v0.107.1: RunState.CreateForTest reaches ModelDb.BadgeModels, which calls
++        // ReflectionHelper.ModTypes and throws while ModManager.State is None.
++        // ResetForTests() clears the mod list but leaves State at None, so drive the
++        // private setter to Skipped — "finished, no mods", which is the truth here.
++        try
++        {
++            MegaCrit.Sts2.Core.Modding.ModManager.ResetForTests();
++            var mm = typeof(MegaCrit.Sts2.Core.Modding.ModManager);
++            var prop = mm.GetProperty("State",
++                System.Reflection.BindingFlags.Static
++                | System.Reflection.BindingFlags.Public
++                | System.Reflection.BindingFlags.NonPublic);
++            prop?.SetValue(null, MegaCrit.Sts2.Core.Modding.ModManagerState.Skipped);
++            Console.Error.WriteLine($"[INFO] ModManager.State = "
++                + MegaCrit.Sts2.Core.Modding.ModManager.State);
++        }
++        catch (Exception ex) { Console.Error.WriteLine($"[WARN] ModManager init: {ex.Message}"); }
++
+         // Install inline sync context on main thread
+         SynchronizationContext.SetSynchronizationContext(_syncCtx);
+ 

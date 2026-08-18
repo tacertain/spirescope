@@ -5,8 +5,10 @@ Dated because the run history grows: everything below is as of **2026-08-17**,
 at **148 runs / 42 wins**. Recompute before reusing a number.
 
 Method notes and traps live in `DATA_GUIDE.md`; the dataset builders are in
-`extract.py` and reproduce every figure below exactly. This file is the record
-of results.
+`extract.py` and reproduce every figure below exactly. `card_model.py` holds the
+Bayesian card model, and `mapgen/` regenerates the *offered* map from a run's
+seed — the one source of data the save files do not contain. This file is the
+record of results.
 
 **Scale-setting result, true of everything here.** Character win rates span
 17.4% (Defect, 8/46) to 42.9% (Silent, 9/21) — and that 25-point gap is **not
@@ -538,8 +540,13 @@ Roughly in order of expected value.
    artifact that motivated this whole exercise. Fixing it will not change τ = 0,
    which is the point: it is cheap insurance for every future analysis rather
    than a way to rescue this one.
-5. **Path choice: taking versus skipping elites — BLOCKED, see below.** The
-   question is live and interesting; the data to answer it does not exist.
+5. **Is the elite avoidance correct play?** No longer blocked — `analysis/mapgen/`
+   supplies the counterfactual maps. Overgrowth elites are ~3× deadlier and are
+   taken 33% of the time against Underdocks' 53%, which may be right, under- or
+   over-corrected. With offered-versus-taken data in hand this is answerable:
+   compare outcomes of runs that took an offered elite against those that
+   declined one, matched on HP and floor. Watch the confounder — you take elites
+   when the deck is strong, so this needs the same care as everything else here.
 6. **Fix the app's card sort.** Independent of any new analysis: the current
    Win Rate order is a rarity ranking. `_sort_key_winrate` in `sts2/routes.py`
    keys off raw held win rate with sample size only as a tiebreak — a 2/2

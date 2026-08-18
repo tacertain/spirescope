@@ -1,0 +1,6 @@
+# Keep these byte-exact. Git's autocrlf would rewrite the patch's line endings
+# on checkout, which can make `git apply` fail with "patch does not apply" for
+# reasons that look nothing like line endings. The .jsonl is data, not source.
+*.patch -text
+*.jsonl -text
+genmaps.sh text eol=lf
