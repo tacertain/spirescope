@@ -353,10 +353,58 @@ Andrew's surprise at the idea that one variant simply has more elite nodes.
 "fewer elites available" and "elites harder to reach without giving up a rest"
 are observationally identical here.
 
-**What would settle it:** manually recording how many elite nodes each act-1 map
-*offers* over the next 20–30 runs. That is a few seconds per run and would
-answer definitively what no amount of reanalysis can. Failing that, decompiling
-the shipped .NET assembly, which is out of scope here.
+**What would settle it, option A:** manually recording how many elite nodes each
+act-1 map *offers* over the next 20–30 runs. A few seconds per run, and decisive
+where no amount of reanalysis is.
+
+**Option B — regenerate the maps with `sts2-cli`** (assessed 2026-08-17,
+<https://github.com/wuhao21/sts2-cli>). Viable, with one patch and one install.
+
+It runs the **real engine**: `setup.sh` copies the DLLs from the Steam install
+and IL-patches them, so generation is the game's own code rather than a
+reimplementation. Two properties make it a fit:
+
+- **Seeds pass through to the game.** `RunSimulator.cs` does not hash the seed;
+  it hands the string to `RunState.CreateForTest(seed: seedStr)`, so the game
+  interprets it. Our saves carry the seed (10 chars, alphabet
+  `0123456789ABCDEFGHJKLMNPQRSTUVWXYZ` — no I or O), plus character
+  (`players[0].character`) and ascension. All the inputs exist per run.
+- **Seed determinism is confirmed.** One seed appears twice in the history
+  (`63CDWTESFZ`, Silent, asc 5, v0.107.1) and both runs produced the same act
+  sequence, same act-1 boss, same length, treasure on row 10, and a byte-identical
+  walked path.
+
+**The gap:** the full map is not exposed. Each `map_select` returns only the
+reachable children as `{col, row, type}`; the `ActMap` / `MapPoint` graph stays
+in memory undumped. Counting *offered* elite nodes needs the whole graph, so this
+wants a `dump_map` command added to `RunSimulator.cs` — modest, since the objects
+are already there.
+
+**Costs and risks, in order:**
+
+1. **.NET 9 SDK is not installed** on this machine (runtimes 6.0/8.0 only, no SDK
+   at all). That is a real install, not a build step.
+2. **Version drift.** The tool patches the *current* Steam DLLs. The history
+   spans v0.107.1 (90 runs), v0.103.2 (35) and v0.103.3 (23), so only the 90
+   regenerate faithfully unless map generation is unchanged across versions. 90
+   is still ample for this question.
+3. **`CreateForTest` is a test helper**, not the production run-start path. It
+   may differ in seed interpretation or setup. Unverified.
+
+**Validation is free and strong.** Every run's walked path is ground truth: a
+regenerated map must contain it as a legal route with matching node types row by
+row. Run `63CDWTESFZ` is a ready-made smoke test — expect act-1 boss
+`LAGAVULIN_MATRIARCH_BOSS`, treasure on row 10, and path `AMMUUURURTRUREURB`.
+
+**Payoff beyond this question.** It would unlock the whole offered-versus-taken
+class — every counterfactual about routing, and the ability to condition card
+analysis on what was actually available. That is the largest single upgrade
+available to this project.
+
+**Not viable: `StS2-Multiplayer-Seed-Finder`** (<https://github.com/AlejandroGA-GHUB/StS2-Multiplayer-Seed-Finder>).
+It reimplements the RNG rather than calling the game, and predicts *what an act
+contains* — act order, bosses, rewards, shop stock — not the node graph or
+spatial layout. Wrong axis for this question.
 
 ---
 
