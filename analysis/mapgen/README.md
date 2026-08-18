@@ -67,20 +67,28 @@ dotnet run --project tools/ApiDump -- lib/sts2.dll type RunManager
 dotnet run --project tools/ApiDump -- lib/sts2.dll find SetUpSaved
 ```
 
-## Upstream status — read before applying the patch
+## Upstream status — this patch is the durable route
 
-As of 2026-08-17 the **two compatibility fixes have been submitted upstream** as
-a draft PR: <https://github.com/wuhao21/sts2-cli/pull/90>, from branch
-`fix/v0.107.1-compat` on the fork <https://github.com/tacertain/sts2-cli>. The
-`act1` feature is deliberately **not** in that PR — it is ours, not a fix.
+The two compatibility fixes were briefly opened upstream as
+<https://github.com/wuhao21/sts2-cli/pull/90> and **closed again on 2026-08-17**.
+Not because they were wrong — they are what makes the tool run at all — but
+because the project already has open PRs for the v0.107 migration that have sat
+unacted for a couple of months. Adding another was noise rather than help.
 
-So the patch here may be partly redundant depending on when you pick this up:
+**So assume upstream will not fix this, and apply the patch here.** Reapplying it
+to a fresh clone is the expected workflow, not a workaround.
 
-- **PR still open** → apply the whole patch, as described above.
-- **PR merged** → the two fixes are already in `main`; applying the full patch
-  will conflict. Take only the `act1` hunks (the `StartRun` signature, the act
-  list construction, and the `Program.cs` dispatch line).
-- **PR rejected** → nothing changes; the full patch stands.
+Two things to check first, since upstream can move without warning:
+
+- **If `main` already builds against your game version**, someone's migration PR
+  has landed. Apply only the `act1` hunks — the `StartRun` signature, the act-list
+  construction, and the `Program.cs` dispatch line — since the other two would
+  then conflict.
+- **If the game has moved past v0.107.1**, expect the two drift fixes to need
+  redoing rather than reapplying. Use `ApiDump` to find the new names.
+
+The `fix/v0.107.1-compat` branch still exists on the fork
+<https://github.com/tacertain/sts2-cli> if it is ever worth reviving.
 
 The working clone at `C:/Users/tacer/GitHub/sts2-cli` carries **uncommitted**
 changes on `main` — the full set including `act1` — plus a `myfork` remote and
