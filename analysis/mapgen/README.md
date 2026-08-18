@@ -36,17 +36,28 @@ Everything here was built and validated on **game v0.107.1** on 2026-08-17.
 The setup script only ever *copies* DLLs out of the Steam install and patches the
 copies in `lib/`. It does not modify the game.
 
-## What the patch fixes
+## What the patch contains
 
-Three are version drift and will recur on the next game update:
+Three code changes across two files. **Two are version drift** and should be
+expected to recur on the next game update:
 
-1. `SetUpSavedSinglePlayer` → `SetUpSavedSingleplayer`. A rename.
-2. `RunState.CreateForTest` now reaches `ModelDb.BadgeModels`, which throws while
-   `ModManager.State` is `None`. `ResetForTests()` clears the mod list but leaves
-   the state at `None`, so the private setter is driven to `Skipped` — "finished,
-   with no mods", which is the truth headless.
-3. An `act1` argument on `start_run`. Not drift: the default act list is fixed at
-   Overgrowth, so without this the act-1 variant cannot be chosen at all.
+1. `SetUpSavedSinglePlayer` → `SetUpSavedSingleplayer`. A capitalisation rename.
+   Only on the save-loading path, not `start_run`.
+2. `RunState.CreateForTest` now reaches `ModelDb.BadgeModels`, which calls
+   `ReflectionHelper.ModTypes` and throws while `ModManager.State` is `None`.
+   `ResetForTests()` clears the mod list but leaves the state at `None`, so the
+   private setter is driven to `Skipped` — "finished, with no mods", which is the
+   truth headless.
+
+**The third is a feature, not a fix**, and will not be obsoleted by a game
+update:
+
+3. An `act1` argument on `start_run`, spanning both files. The default act list
+   is hardcoded to Overgrowth, so without this the act-1 variant cannot be
+   selected and the two variants cannot be compared at all.
+
+Steps 1 and 4 of the setup above — the SDK install and the explicit game path —
+are environment work and are deliberately *not* in the patch.
 
 When the game updates and something else breaks, use `ApiDump` rather than
 guessing:
