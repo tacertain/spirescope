@@ -87,13 +87,27 @@ Two things to check first, since upstream can move without warning:
 - **If the game has moved past v0.107.1**, expect the two drift fixes to need
   redoing rather than reapplying. Use `ApiDump` to find the new names.
 
-The `fix/v0.107.1-compat` branch still exists on the fork
-<https://github.com/tacertain/sts2-cli> if it is ever worth reviving.
+### Branches on the fork
 
-The working clone at `C:/Users/tacer/GitHub/sts2-cli` carries **uncommitted**
-changes on `main` — the full set including `act1` — plus a `myfork` remote and
-the `fix/v0.107.1-compat` branch. Do not `git checkout .` there expecting it to
-be disposable. It is recoverable from this patch either way, but not obviously.
+Everything is committed to <https://github.com/tacertain/sts2-cli>, one branch
+per concern and one commit per independent change, so pieces can be dropped or
+rebased individually as upstream moves:
+
+| branch | commits | drop it when |
+|---|---|---|
+| `fix/v0.107.1-compat` | the rename; the ModManager init | upstream fixes either — they are separate commits, so drop just the one |
+| `feature/act1-override` | the `act1` argument | never; it is ours, and no game update obsoletes it |
+| `tools/api-dump` | `ApiDump` | never; touches nothing under `src/` |
+| `integration/v0.107.1` | all four, cherry-picked | this is the branch to actually build and run |
+
+The working clone at `C:/Users/tacer/GitHub/sts2-cli` is checked out on
+`integration/v0.107.1` with a clean tree. Rebuilding it after a `git pull` on
+`main` means rebasing that branch; because the four commits are independent, a
+conflict in one does not block the others.
+
+`sts2-cli-v0.107.1.patch` in this directory remains the fallback if the fork is
+ever unavailable. It is the same content as `integration/v0.107.1` minus
+`ApiDump`.
 
 Exact environment this was built and validated against: game **v0.107.1**, commit
 `59260271`, .NET SDK **9.0.317**, Windows.
